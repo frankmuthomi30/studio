@@ -1,4 +1,7 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type Student = {
+  id?: string; // Firestore document ID
   admission_number: string;
   first_name: string;
   last_name: string;
@@ -6,26 +9,27 @@ export type Student = {
   class: string;
   stream?: string;
   year?: string;
-  uploaded_at?: Date;
+  uploaded_at?: Timestamp;
   uploaded_by?: string;
 };
 
 export type ChoirMember = {
+  id?: string; // Firestore document ID, which is student admission_number
   admission_number: string;
   class: string;
   status: 'active' | 'inactive';
-  date_joined: Date;
+  date_joined: Timestamp;
   added_by?: string;
 };
 
 export type AttendanceSession = {
   id: string; // e.g., 2026-02-01_evening
-  date: Date;
+  date: Timestamp;
   practice_type: string;
   class_filter?: string;
   attendance_map: Record<string, boolean>; // admission_number -> true/false
   recorded_by?: string;
-  recorded_at?: Date;
+  recorded_at?: Timestamp;
   locked: boolean;
 };
 

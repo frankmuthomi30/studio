@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, FileUp, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, FileUp, CheckCircle } from 'lucide-react';
 import VerificationTable from './verification-table';
 
 const formSchema = z.object({
@@ -163,7 +163,6 @@ export default function StudentUploadClient() {
         {step === 'preview' && verificationResult && (
             <VerificationTable 
                 data={verificationResult.data} 
-                issues={verificationResult.issues}
                 onCommit={handleCommit}
                 onCancel={handleReset}
             />
@@ -174,7 +173,7 @@ export default function StudentUploadClient() {
                 <CheckCircle className="h-16 w-16 text-green-500" />
                 <h3 className="text-2xl font-bold">Upload Successful</h3>
                 <p className="max-w-md text-muted-foreground">
-                    The data for {committedData[0].class} has been saved. You can now manage these students in the Choir Management section.
+                    {committedData.length > 0 && `The data for ${committedData[0].class} has been saved.`} You can now manage these students in the Choir Management section.
                 </p>
                 <Button onClick={handleReset}>
                     Upload Another File

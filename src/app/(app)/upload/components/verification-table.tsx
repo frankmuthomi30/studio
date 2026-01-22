@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { ParsedStudentData } from '../actions';
-import type { VerifyStudentDataOutput } from '@/ai/flows/ai-data-verification';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
@@ -10,13 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 type VerificationTableProps = {
   data: ParsedStudentData[];
-  issues: VerifyStudentDataOutput;
   onCommit: (data: ParsedStudentData[]) => void;
   onCancel: () => void;
 };
 
-export default function VerificationTable({ data, issues, onCommit, onCancel }: VerificationTableProps) {
-  const [editableData, setEditableData] = useState(data);
+export default function VerificationTable({ data, onCommit, onCancel }: VerificationTableProps) {
+  const [editableData] = useState(data);
 
   return (
     <div className="space-y-6">
@@ -27,7 +25,7 @@ export default function VerificationTable({ data, issues, onCommit, onCancel }: 
             <CardTitle>Preview Uploaded Data</CardTitle>
            </div>
           <CardDescription>
-            Review the data below before saving it to the database.
+            Review the data below before saving it to the database. Found {data.length} records.
           </CardDescription>
         </CardHeader>
         <CardContent>

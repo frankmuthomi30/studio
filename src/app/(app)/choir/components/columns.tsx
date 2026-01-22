@@ -78,7 +78,7 @@ export const columns: ColumnDef<StudentWithChoirStatus>[] = [
 
       const handleStatusChange = (newStatus: 'active' | 'inactive' | 'not_member') => {
         startTransition(async () => {
-          const result = await updateChoirStatus(student.admission_number, newStatus);
+          const result = await updateChoirStatus(student.admission_number, newStatus, student.class);
           if (result.success) {
             toast({ title: 'Success', description: result.message });
           } else {

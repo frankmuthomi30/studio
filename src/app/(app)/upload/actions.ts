@@ -2,7 +2,20 @@
 
 import * as xlsx from 'xlsx';
 import { z } from 'zod';
-import type { StudentData, VerifyStudentDataOutput } from '@/ai/flows/ai-data-verification';
+import { getFirestore, doc, writeBatch, serverTimestamp } from 'firebase/firestore/lite';
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+import type { Student } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
+
+// This is not ideal but server actions need their own initialization.
+function getDb() {
+    if (!getApps().length) {
+        initializeApp(firebaseConfig);
+    }
+    return getFirestore(getApp());
+}
+
 
 const StudentDataSchema = z.object({
   admission_number: z.union([z.string(), z.number()]),
@@ -13,16 +26,13 @@ const StudentDataSchema = z.object({
   year: z.optional(z.union([z.string(), z.number()])),
 });
 
-const ExcelRowSchema = z.array(StudentDataSchema);
-
-export type ParsedStudentData = StudentData & {
+export type ParsedStudentData = Omit<Student, 'id' | 'uploaded_at'> & {
     rowNumber: number;
-    class: string;
 };
 
 export type VerificationResult = {
   data: ParsedStudentData[];
-  issues: VerifyStudentDataOutput;
+  issues: any[]; // AI feature removed
 };
 
 export async function processExcelFile(
@@ -62,20 +72,26 @@ export async function processExcelFile(
 }
 
 export async function commitStudentData(students: ParsedStudentData[]): Promise<{ success: boolean; message: string }> {
-    // This is a mock implementation.
-    // In a real application, you would write this data to Firebase Firestore.
-    console.log('Committing data for', students.length, 'students.');
-    // Example:
-    // const db = getFirestore();
-    // const batch = writeBatch(db);
-    // students.forEach(student => {
-    //   const { rowNumber, ...studentData } = student;
-    //   const docRef = doc(db, 'students', student.admission_number);
-    //   batch.set(docRef, { ...studentData, uploaded_at: serverTimestamp() }, { merge: true });
-    // });
-    // await batch.commit();
+    const db = getDb();
+    const batch = writeBatch(db);
     
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network latency
-
-    return { success: true, message: `${students.length} student records have been successfully saved.` };
+    students.forEach(student => {
+      const { rowNumber, ...studentData } = student;
+      const docRef = doc(db, 'students', student.admission_number);
+      batch.set(docRef, { 
+          ...studentData, 
+          uploaded_at: serverTimestamp(),
+          // uploaded_by should be current user ID
+        }, { merge: true });
+    });
+    
+    try {
+        await batch.commit();
+        revalidatePath('/choir');
+        revalidatePath('/dashboard');
+        return { success: true, message: `${students.length} student records have been successfully saved.` };
+    } catch (e: any) {
+        console.error('Error committing student data:', e);
+        return { success: false, message: e.message || 'Failed to save student records.' };
+    }
 }

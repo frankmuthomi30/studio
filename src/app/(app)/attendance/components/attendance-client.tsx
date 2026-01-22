@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { Student, ChoirMember } from '@/lib/types';
-import { mockStudents, mockChoirMembers } from '@/lib/mock-data';
 import { saveAttendanceSession } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AttendanceSheet from './attendance-sheet';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { useMemo } from 'react';
 
 type Session = {
   date: Date;
@@ -27,11 +29,24 @@ export default function AttendanceClient() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const activeChoirMembers = mockChoirMembers
-    .filter((cm) => cm.status === 'active')
-    .map((cm) => mockStudents.find((s) => s.admission_number === cm.admission_number))
-    .filter((s): s is Student => !!s);
+  const activeMembersQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'choir_members'), where('status', '==', 'active')) : null
+  , [firestore]);
+  const { data: activeChoirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(activeMembersQuery);
+  
+  const studentQuery = useMemoFirebase(() =>
+    firestore && activeChoirMembers && activeChoirMembers.length > 0 ? 
+    query(collection(firestore, 'students'), where('admission_number', 'in', activeChoirMembers.map(m => m.admission_number))) 
+    : null
+  , [firestore, activeChoirMembers]);
+  const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
+
+  const activeStudents = useMemo(() => {
+    if (!students) return [];
+    return students;
+  }, [students]);
 
   const handleCreateSession = () => {
     if (newSession.date && newSession.practice_type) {
@@ -73,11 +88,11 @@ export default function AttendanceClient() {
     setIsSaving(false);
   };
   
-  if (isSaving) {
+  if (isSaving || membersLoading || studentsLoading) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8 text-muted-foreground">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-lg">Saving attendance session...</p>
+        <p className="text-lg">{isSaving ? 'Saving attendance session...' : 'Loading choir members...'}</p>
       </div>
     );
   }
@@ -86,7 +101,7 @@ export default function AttendanceClient() {
     return (
       <AttendanceSheet
         session={session}
-        members={activeChoirMembers}
+        members={activeStudents}
         onSave={handleSaveAttendance}
         onCancel={() => setSession(null)}
       />
@@ -141,7 +156,7 @@ export default function AttendanceClient() {
       <div className="mt-8">
         <h3 className="text-lg font-semibold mb-4">Past Sessions (placeholder)</h3>
         <p className="text-muted-foreground text-center p-4 border rounded-md">
-            List of previously recorded sessions will appear here.
+            List of previously recorded sessions will appear here. This part is not yet implemented.
         </p>
       </div>
     </div>

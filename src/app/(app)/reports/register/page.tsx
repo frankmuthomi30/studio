@@ -1,3 +1,4 @@
+'use client';
 import PageHeader from '@/components/page-header';
 import RegisterReport from '../components/register-report';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,16 +8,21 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon } from "lucide-react"
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
-import { addDays, format } from "date-fns"
+import { format } from "date-fns"
 import { cn } from '@/lib/utils';
 import React from 'react';
 
-// This page would be a client component in a real app to manage state
 export default function RegisterReportPage() {
-    const [date, setDate] = React.useState<DateRange | undefined>({
-        from: new Date(2026, 1, 1),
-        to: addDays(new Date(2026, 1, 1), 20),
-      })
+    const [date, setDate] = React.useState<DateRange | undefined>()
+    const [reportFilters, setReportFilters] = React.useState<{dateRange?: DateRange}>({});
+
+    const handleGenerate = () => {
+        setReportFilters({ dateRange: date });
+    }
+
+    const handlePrint = () => {
+        window.print();
+    }
 
   return (
     <>
@@ -54,7 +60,7 @@ export default function RegisterReportPage() {
                                 format(date.from, "LLL dd, y")
                             )
                             ) : (
-                            <span>Pick a date</span>
+                            <span>Pick a date range</span>
                             )}
                         </Button>
                         </PopoverTrigger>
@@ -64,22 +70,22 @@ export default function RegisterReportPage() {
                             mode="range"
                             defaultMonth={date?.from}
                             selected={date}
-                            onSelect={setDate as any}
+                            onSelect={setDate}
                             numberOfMonths={2}
                         />
                         </PopoverContent>
                     </Popover>
                 </div>
-                <Button>
+                <Button onClick={handleGenerate}>
                     <Search className="mr-2 h-4 w-4" />
                     Generate Report
                 </Button>
                 <div className="ml-auto flex gap-2">
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handlePrint}>
                         <Printer className="mr-2 h-4 w-4" />
                         Print
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" disabled>
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
                     </Button>
@@ -88,9 +94,7 @@ export default function RegisterReportPage() {
         </Card>
 
         <div className="print-container">
-            {/* The generated report will be rendered here */}
-            {/* For demonstration, we'll show a sample report */}
-            <RegisterReport />
+           <RegisterReport filters={reportFilters} />
         </div>
       </div>
     </>

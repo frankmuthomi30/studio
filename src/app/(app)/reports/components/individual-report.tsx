@@ -1,12 +1,15 @@
-import type { Student } from '@/lib/types';
+'use client';
+import type { Student, AttendanceSession } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockAttendanceSessions } from '@/lib/mock-data';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
 type IndividualReportProps = {
   student: Student;
@@ -14,8 +17,23 @@ type IndividualReportProps = {
 
 export default function IndividualReport({ student }: IndividualReportProps) {
   const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
-  const attendanceData = mockAttendanceSessions.map(session => ({
-    date: session.date,
+  const firestore = useFirestore();
+
+  const attendanceQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'choir_attendance'), orderBy('date', 'asc')) : null
+  , [firestore]);
+  const { data: attendanceSessions, isLoading } = useCollection<AttendanceSession>(attendanceQuery);
+  
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  const attendanceData = (attendanceSessions ?? []).map(session => ({
+    date: session.date.toDate(),
     practice_type: session.practice_type,
     status: session.attendance_map[student.admission_number]
   })).filter(rec => rec.status !== undefined);
@@ -81,6 +99,13 @@ export default function IndividualReport({ student }: IndividualReportProps) {
                     </TableCell>
                 </TableRow>
             ))}
+             {attendanceData.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                        No attendance records found for this student.
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </section>

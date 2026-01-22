@@ -2,26 +2,42 @@
 
 import type { AttendanceSession } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore/lite';
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+import { Timestamp } from 'firebase/firestore/lite';
+
+function getDb() {
+    if (!getApps().length) {
+        initializeApp(firebaseConfig);
+    }
+    return getFirestore(getApp());
+}
 
 export async function saveAttendanceSession(
-  sessionData: Omit<AttendanceSession, 'id' | 'recorded_at' | 'locked'>
+  sessionData: Omit<AttendanceSession, 'id' | 'recorded_at' | 'locked' | 'date'> & { date: Date }
 ): Promise<{ success: boolean; message: string }> {
-  const newSession: AttendanceSession = {
+  const db = getDb();
+  
+  const id = `${sessionData.date.toISOString().split('T')[0]}_${sessionData.practice_type.toLowerCase().replace(/\s+/g, '-')}`;
+  
+  const newSession: Omit<AttendanceSession, 'id'> = {
     ...sessionData,
-    id: `${sessionData.date.toISOString().split('T')[0]}_${sessionData.practice_type.toLowerCase().replace(' ', '-')}`,
-    recorded_at: new Date(),
+    date: Timestamp.fromDate(sessionData.date),
+    recorded_at: serverTimestamp(),
     locked: false,
+    // recorded_by: should be current user ID
   };
-
-  console.log('Saving new attendance session:', newSession);
-
-  // This is a mock implementation.
-  // In a real application, you would write this to the `choir_attendance` collection in Firestore.
-  // e.g., await setDoc(doc(db, 'choir_attendance', newSession.id), newSession);
   
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network latency
-  
-  revalidatePath('/attendance');
+  const sessionRef = doc(db, 'choir_attendance', id);
 
-  return { success: true, message: 'Attendance session has been saved successfully.' };
+  try {
+    await setDoc(sessionRef, newSession);
+    revalidatePath('/attendance');
+    revalidatePath('/dashboard');
+    return { success: true, message: 'Attendance session has been saved successfully.' };
+  } catch (e: any) {
+    console.error('Error saving attendance session:', e);
+    return { success: false, message: e.message || 'Failed to save attendance session.' };
+  }
 }

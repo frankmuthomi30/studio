@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import './reports/print.css';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'Gatura Girls Choir',
@@ -24,7 +25,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        {children}
+        <FirebaseClientProvider>
+          {children}
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
