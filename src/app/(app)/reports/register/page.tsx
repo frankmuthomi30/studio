@@ -11,6 +11,9 @@ import { DateRange } from 'react-day-picker';
 import { format } from "date-fns"
 import { cn } from '@/lib/utils';
 import React from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
 
 export default function RegisterReportPage() {
     const [date, setDate] = React.useState<DateRange | undefined>()
@@ -23,6 +26,34 @@ export default function RegisterReportPage() {
     const handlePrint = () => {
         window.print();
     }
+
+    const handleExportPdf = () => {
+        if (!date?.from) return;
+
+        const doc = new jsPDF({ orientation: "landscape" });
+
+        const schoolName = "Gatura Girls High School";
+        const reportTitle = "Full Choir Attendance Register";
+        const dateRange = `Date Range: ${format(date.from, "MMM dd, yyyy")} - ${date.to ? format(date.to, "MMM dd, yyyy") : format(date.from, "MMM dd, yyyy")}`;
+
+        doc.setFontSize(18);
+        doc.text(schoolName, 14, 20);
+        doc.setFontSize(14);
+        doc.text(reportTitle, 14, 28);
+        doc.setFontSize(10);
+        doc.text(dateRange, 14, 34);
+
+        (doc as any).autoTable({
+            html: '#register-report-table',
+            startY: 40,
+            theme: 'grid',
+            headStyles: {
+                fillColor: '#107C41' // green theme color
+            },
+        });
+
+        doc.save(`Gatura-Girls-Choir-Register-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    };
 
   return (
     <>
@@ -85,7 +116,7 @@ export default function RegisterReportPage() {
                         <Printer className="mr-2 h-4 w-4" />
                         Print
                     </Button>
-                    <Button variant="outline" disabled>
+                    <Button variant="outline" onClick={handleExportPdf} disabled={!reportFilters.dateRange?.from}>
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
                     </Button>

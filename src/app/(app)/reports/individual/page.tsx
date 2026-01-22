@@ -10,7 +10,7 @@ import {
     SelectValue,
   } from "@/components/ui/select"
 import { Button } from '@/components/ui/button';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, Printer } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState } from 'react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -34,6 +34,10 @@ export default function IndividualReportPage() {
         }
     }
 
+    const handleDownloadPdf = () => {
+        window.print();
+    }
+
   return (
     <>
       <PageHeader
@@ -50,13 +54,13 @@ export default function IndividualReportPage() {
                 {isLoading ? (
                     <Loader2 className="animate-spin" />
                 ) : (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Select onValueChange={setSelectedStudentId} value={selectedStudentId ?? undefined}>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-auto sm:min-w-[300px]">
                                 <SelectValue placeholder="Select a student..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {students?.map(student => (
+                                {students?.sort((a,b) => a.first_name.localeCompare(b.first_name)).map(student => (
                                     <SelectItem key={student.id} value={student.id!}>
                                         {student.first_name} {student.last_name} ({student.admission_number})
                                     </SelectItem>
@@ -66,6 +70,10 @@ export default function IndividualReportPage() {
                         <Button onClick={handleGenerateReport} disabled={!selectedStudentId}>
                             <Search className="mr-2 h-4 w-4" />
                             Generate Report
+                        </Button>
+                        <Button onClick={handleDownloadPdf} disabled={!studentToReport} variant="outline">
+                            <Printer className="mr-2 h-4 w-4" />
+                            Print / Save PDF
                         </Button>
                     </div>
                 )}
