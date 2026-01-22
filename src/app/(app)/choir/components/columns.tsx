@@ -54,10 +54,6 @@ export const columns: ColumnDef<StudentWithChoirStatus>[] = [
     header: 'Class',
   },
   {
-    accessorKey: 'gender',
-    header: 'Gender',
-  },
-  {
     id: 'status',
     accessorFn: row => row.choirMember?.status ?? 'not_member',
     header: 'Choir Status',

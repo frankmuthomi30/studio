@@ -70,7 +70,6 @@ export default function IndividualReport({ student }: IndividualReportProps) {
             <div><span className="font-semibold text-gray-600">Full Name:</span> {student.first_name} {student.last_name}</div>
             <div><span className="font-semibold text-gray-600">Admission Number:</span> {student.admission_number}</div>
             <div><span className="font-semibold text-gray-600">Class / Grade:</span> {student.class}</div>
-            <div><span className="font-semibold text-gray-600">Gender:</span> {student.gender}</div>
         </div>
       </section>
 

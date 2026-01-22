@@ -5,7 +5,6 @@ export type Student = {
   admission_number: string;
   first_name: string;
   last_name: string;
-  gender: string;
   class: string;
   stream?: string;
   year?: string;

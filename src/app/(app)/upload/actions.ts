@@ -61,17 +61,15 @@ export async function processExcelFile(
 
     const admissionHeader = findHeader(['Admission Number', 'Adm No', 'Admission No']);
     const nameHeader = findHeader(['Name', 'Full Name']);
-    const genderHeader = findHeader(['Gender']);
     const streamHeader = findHeader(['Stream']);
     const upiHeader = findHeader(['UPI']);
     const kcseHeader = findHeader(['common.kcse', 'KCSE', 'KCSE Score']);
     const contactsHeader = findHeader(['Contacts', 'Contact', 'Phone Number']);
 
-    if (!admissionHeader || !nameHeader || !genderHeader) {
+    if (!admissionHeader || !nameHeader) {
         let missing = [];
         if (!admissionHeader) missing.push("'Admission Number' or 'Adm No'");
         if (!nameHeader) missing.push("'Name' or 'Full Name'");
-        if (!genderHeader) missing.push("'Gender'");
         return { success: false, error: `Missing mandatory columns: ${missing.join(', ')}. Please check your file.` };
     }
 
@@ -85,7 +83,6 @@ export async function processExcelFile(
         admission_number: String(row[admissionHeader]),
         first_name,
         last_name,
-        gender: row[genderHeader],
         class: className,
         stream: streamHeader && row[streamHeader] ? String(row[streamHeader]) : undefined,
         upi: upiHeader && row[upiHeader] ? String(row[upiHeader]) : undefined,
