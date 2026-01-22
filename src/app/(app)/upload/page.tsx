@@ -6,7 +6,7 @@ export default function StudentUploadPage() {
     <>
       <PageHeader
         title="Student Data Import"
-        subtitle="Upload Excel files to add or update student master data."
+        subtitle="Upload the latest class list. The system will automatically add new students and update the details of existing ones."
       />
       <div className="container mx-auto p-4 md:p-8">
         <StudentUploadClient />

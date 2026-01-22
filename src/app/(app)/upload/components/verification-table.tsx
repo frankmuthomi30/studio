@@ -25,7 +25,7 @@ export default function VerificationTable({ data, onCommit, onCancel }: Verifica
             <CardTitle>Preview Uploaded Data</CardTitle>
            </div>
           <CardDescription>
-            Review the data below before saving it to the database. Found {data.length} records.
+            Review the data below. Committing will save these records to the database, updating any students that already exist and adding new ones. Found {data.length} records.
           </CardDescription>
         </CardHeader>
         <CardContent>

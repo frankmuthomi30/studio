@@ -103,16 +103,20 @@ export default function StudentUploadClient() {
 
   const isProcessing = step === 'uploading' || step === 'commit';
 
+  const descriptions: Record<UploadStep, string> = {
+    idle: 'Select an Excel file and specify the class. This will add any new students and update the details for existing ones based on their admission number.',
+    uploading: 'Processing your file. Please wait...',
+    preview: 'Review the parsed data. Committing will add new students and update the details of existing students.',
+    commit: 'Saving data to the database...',
+    complete: `Upload complete! ${committedData.length} student records were successfully saved or updated.`,
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>New Data Upload</CardTitle>
         <CardDescription>
-          {step === 'idle' && 'Select an Excel file and specify the class to begin.'}
-          {step === 'uploading' && 'Processing your file. Please wait...'}
-          {step === 'preview' && 'Review the parsed data and commit the changes.'}
-          {step === 'commit' && 'Saving data to the database...'}
-          {step === 'complete' && `Upload complete. ${committedData.length} records were saved.`}
+          {descriptions[step]}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -126,7 +130,7 @@ export default function StudentUploadClient() {
                   <FormItem>
                     <FormLabel>Class / Grade</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Form 3 or Grade 11" {...field} />
+                      <Input placeholder="e.g., Form 3 or Grade 11" {...field} value={field.value ?? ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
