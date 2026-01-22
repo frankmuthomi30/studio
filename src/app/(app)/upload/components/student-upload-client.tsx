@@ -38,6 +38,10 @@ export default function StudentUploadClient() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      className: '',
+      file: undefined,
+    },
   });
 
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
