@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "school_logo",
-      "description": "Placeholder for school logo",
-      "imageUrl": "https://images.unsplash.com/photo-1762330918617-e135c98d40fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzY2hvb2wlMjBsb2dvfGVufDB8fHx8MTc2ODk3NDA2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "school logo"
+      "description": "Gatura Girls High School Logo",
+      "imageUrl": "https://images.unsplash.com/photo-1580273916551-4a81b3398906?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxncmVlbiUyMHNjaG9vbCUyMGVtc2lnbmlhfGVufDB8fHx8MTc2ODk3NDA2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "school emblem"
     }
   ]
 }

@@ -13,7 +13,7 @@ export default function LoginPage() {
         <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center space-y-6">
           <div className="space-y-2 text-center">
             <h1 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-              Welcome to ChoirMaster
+              Welcome to Gatura Girls Choir
             </h1>
             <p className="text-muted-foreground md:text-xl">
               The complete solution for managing your school choir's attendance.
@@ -33,7 +33,7 @@ export default function LoginPage() {
         </div>
       </main>
       <footer className="p-4 text-center text-sm text-muted-foreground sm:p-6">
-        © {new Date().getFullYear()} ChoirMaster. All Rights Reserved.
+        © {new Date().getFullYear()} Gatura Girls Choir. All Rights Reserved.
       </footer>
     </div>
   );

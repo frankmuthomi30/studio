@@ -27,7 +27,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type UploadStep = 'idle' | 'uploading' | 'verifying' | 'commit' | 'complete';
+type UploadStep = 'idle' | 'uploading' | 'preview' | 'commit' | 'complete';
 
 export default function StudentUploadClient() {
   const [step, setStep] = useState<UploadStep>('idle');
@@ -50,7 +50,7 @@ export default function StudentUploadClient() {
 
       if (result.success && result.data) {
         setVerificationResult(result.data);
-        setStep('verifying');
+        setStep('preview');
       } else {
         toast({
           variant: 'destructive',
@@ -85,7 +85,7 @@ export default function StudentUploadClient() {
             title: 'Commit Failed',
             description: result.message,
         });
-        setStep('verifying');
+        setStep('preview');
     }
   }
 
@@ -105,7 +105,7 @@ export default function StudentUploadClient() {
         <CardDescription>
           {step === 'idle' && 'Select an Excel file and specify the class to begin.'}
           {step === 'uploading' && 'Processing your file. Please wait...'}
-          {step === 'verifying' && 'Review the verified data and commit the changes.'}
+          {step === 'preview' && 'Review the parsed data and commit the changes.'}
           {step === 'commit' && 'Saving data to the database...'}
           {step === 'complete' && `Upload complete. ${committedData.length} records were saved.`}
         </CardDescription>
@@ -147,7 +147,7 @@ export default function StudentUploadClient() {
               />
               <Button type="submit" disabled={isProcessing}>
                 {isProcessing ? <Loader2 className="animate-spin" /> : <FileUp />}
-                Upload & Verify
+                Upload & Preview
               </Button>
             </form>
           </Form>
@@ -160,7 +160,7 @@ export default function StudentUploadClient() {
             </div>
         )}
 
-        {step === 'verifying' && verificationResult && (
+        {step === 'preview' && verificationResult && (
             <VerificationTable 
                 data={verificationResult.data} 
                 issues={verificationResult.issues}

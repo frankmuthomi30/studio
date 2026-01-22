@@ -2,7 +2,7 @@
 
 import * as xlsx from 'xlsx';
 import { z } from 'zod';
-import { verifyStudentData, type StudentData, type VerifyStudentDataOutput } from '@/ai/flows/ai-data-verification';
+import type { StudentData, VerifyStudentDataOutput } from '@/ai/flows/ai-data-verification';
 
 const StudentDataSchema = z.object({
   admission_number: z.union([z.string(), z.number()]),
@@ -54,20 +54,7 @@ export async function processExcelFile(
       class: className,
     }));
     
-    // Data to be sent to AI for verification
-    const aiInput: StudentData[] = parsedData.map(p => ({
-        admission_number: p.admission_number,
-        first_name: p.first_name,
-        last_name: p.last_name,
-        gender: p.gender,
-        class: p.class,
-        stream: p.stream,
-        year: p.year,
-    }));
-
-    const issues = await verifyStudentData(aiInput);
-
-    return { success: true, data: { data: parsedData, issues } };
+    return { success: true, data: { data: parsedData, issues: [] } };
   } catch (error) {
     console.error('Error processing Excel file:', error);
     return { success: false, error: 'Failed to process the Excel file. Please ensure it is a valid .xlsx file.' };

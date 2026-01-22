@@ -4,7 +4,7 @@ import './globals.css';
 import './reports/print.css';
 
 export const metadata: Metadata = {
-  title: 'ChoirMaster',
+  title: 'Gatura Girls Choir',
   description: 'School Choir Attendance Management System',
 };
 
