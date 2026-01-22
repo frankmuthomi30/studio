@@ -34,13 +34,22 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !filters.dateRange?.from) return null;
-        let q = query(collection(firestore, 'choir_attendance'), orderBy('date', 'asc'));
-        if (filters.dateRange.from) {
-            q = query(q, where('date', '>=', filters.dateRange.from));
-        }
-        if (filters.dateRange.to) {
-            q = query(q, where('date', '<=', filters.dateRange.to));
-        }
+
+        const fromDate = filters.dateRange.from;
+        // If 'to' is not selected, use the same day as 'from'.
+        const toDate = filters.dateRange.to || filters.dateRange.from;
+
+        // Set time to the end of the day for the 'to' date to include all sessions on that day.
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const q = query(
+            collection(firestore, 'choir_attendance'),
+            where('date', '>=', fromDate),
+            where('date', '<=', endOfDay),
+            orderBy('date', 'asc')
+        );
+        
         return q;
     }, [firestore, filters.dateRange]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
@@ -51,7 +60,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         }
 
         const session = sessions[0]; // Use the first session in the range
-        const studentDetails = students.sort((a, b) => a.first_name.localeCompare(b.first_name));
+        const studentDetails = students.sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
 
         const reportRows = studentDetails.map(student => ({
             ...student,
