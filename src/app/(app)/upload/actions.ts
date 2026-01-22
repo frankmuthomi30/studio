@@ -16,19 +16,11 @@ function getDb() {
     return getFirestore(getApp());
 }
 
-
-const StudentDataSchema = z.object({
-  admission_number: z.union([z.string(), z.number()]),
-  first_name: z.string(),
-  last_name: z.string(),
-  gender: z.string(),
-  stream: z.optional(z.string()),
-  year: z.optional(z.union([z.string(), z.number()])),
-});
-
-export type ParsedStudentData = Omit<Student, 'id' | 'uploaded_at'> & {
+// Omit 'uploaded_by' as well, since it's added on the server
+export type ParsedStudentData = Omit<Student, 'id' | 'uploaded_at' | 'uploaded_by'> & {
     rowNumber: number;
 };
+
 
 export type VerificationResult = {
   data: ParsedStudentData[];
@@ -43,26 +35,38 @@ export async function processExcelFile(
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = xlsx.utils.sheet_to_json(worksheet);
+    const jsonData = xlsx.utils.sheet_to_json(worksheet, { raw: false });
     
     // Basic validation for mandatory columns
     if (jsonData.length > 0) {
         const firstRow = jsonData[0] as any;
-        const requiredKeys = ['admission_number', 'first_name', 'last_name', 'gender'];
+        const requiredKeys = ['Admission Number', 'Name', 'Gender'];
         for (const key of requiredKeys) {
             if (!(key in firstRow)) {
-                return { success: false, error: `Missing mandatory column: "${key}"` };
+                return { success: false, error: `Missing mandatory column: "${key}". Column names are case-sensitive.` };
             }
         }
     }
 
-    const parsedData: ParsedStudentData[] = jsonData.map((row: any, index: number) => ({
-      ...row,
-      admission_number: String(row.admission_number),
-      year: row.year ? String(row.year) : undefined,
-      rowNumber: index + 2, // Excel rows are 1-based, plus header
-      class: className,
-    }));
+    const parsedData: ParsedStudentData[] = jsonData.map((row: any, index: number) => {
+      const name = row['Name'] || '';
+      const nameParts = name.trim().split(' ');
+      const first_name = nameParts.shift() || '';
+      const last_name = nameParts.join(' ');
+      
+      return {
+        admission_number: String(row['Admission Number']),
+        first_name,
+        last_name,
+        gender: row['Gender'],
+        class: className,
+        stream: row['Stream'] ? String(row['Stream']) : undefined,
+        upi: row['UPI'] ? String(row['UPI']) : undefined,
+        common_kcse: row['common.kcse'] ? Number(row['common.kcse']) : undefined,
+        contacts: row['Contacts'] ? String(row['Contacts']) : undefined,
+        rowNumber: index + 2,
+      };
+    });
     
     return { success: true, data: { data: parsedData, issues: [] } };
   } catch (error) {

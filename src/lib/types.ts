@@ -9,6 +9,9 @@ export type Student = {
   class: string;
   stream?: string;
   year?: string;
+  upi?: string;
+  common_kcse?: number;
+  contacts?: string;
   uploaded_at?: Timestamp;
   uploaded_by?: string;
 };

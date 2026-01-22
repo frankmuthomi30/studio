@@ -31,8 +31,20 @@
           "description": "The stream or section the student is in. (Optional)"
         },
         "year": {
-          "type": "number",
+          "type": "string",
           "description": "The year the student is in."
+        },
+        "upi": {
+          "type": "string",
+          "description": "Student's Unique Personal Identifier."
+        },
+        "commonKcse": {
+          "type": "number",
+          "description": "Student's KCSE score."
+        },
+        "contacts": {
+          "type": "string",
+          "description": "Student's contact number."
         },
         "uploadedAt": {
           "type": "string",
@@ -50,7 +62,6 @@
         "lastName",
         "gender",
         "class",
-        "year",
         "uploadedAt",
         "uploadedBy"
       ]
