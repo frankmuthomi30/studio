@@ -36,35 +36,61 @@ export async function processExcelFile(
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = xlsx.utils.sheet_to_json(worksheet, { raw: false });
+    const jsonData: any[] = xlsx.utils.sheet_to_json(worksheet, { raw: false });
     
-    // Basic validation for mandatory columns
-    if (jsonData.length > 0) {
-        const firstRow = jsonData[0] as any;
-        const requiredKeys = ['Admission Number', 'Name', 'Gender'];
-        for (const key of requiredKeys) {
-            if (!(key in firstRow)) {
-                return { success: false, error: `Missing mandatory column: "${key}". Column names are case-sensitive.` };
+    if (jsonData.length === 0) {
+        return { success: false, error: 'The uploaded Excel file is empty or has no data rows.' };
+    }
+
+    const firstRow = jsonData[0];
+    const headers = Object.keys(firstRow);
+    
+    const headerMap: { [key: string]: string } = {};
+    headers.forEach(header => {
+        headerMap[header.toLowerCase().trim()] = header;
+    });
+
+    const findHeader = (possibleNames: string[]): string | undefined => {
+        for (const name of possibleNames) {
+            if (headerMap[name.toLowerCase()]) {
+                return headerMap[name.toLowerCase()];
             }
         }
+        return undefined;
+    }
+
+    const admissionHeader = findHeader(['Admission Number', 'Adm No', 'Admission No']);
+    const nameHeader = findHeader(['Name', 'Full Name']);
+    const genderHeader = findHeader(['Gender']);
+    const streamHeader = findHeader(['Stream']);
+    const upiHeader = findHeader(['UPI']);
+    const kcseHeader = findHeader(['common.kcse', 'KCSE', 'KCSE Score']);
+    const contactsHeader = findHeader(['Contacts', 'Contact', 'Phone Number']);
+
+    if (!admissionHeader || !nameHeader || !genderHeader) {
+        let missing = [];
+        if (!admissionHeader) missing.push("'Admission Number' or 'Adm No'");
+        if (!nameHeader) missing.push("'Name' or 'Full Name'");
+        if (!genderHeader) missing.push("'Gender'");
+        return { success: false, error: `Missing mandatory columns: ${missing.join(', ')}. Please check your file.` };
     }
 
     const parsedData: ParsedStudentData[] = jsonData.map((row: any, index: number) => {
-      const name = row['Name'] || '';
+      const name = row[nameHeader] || '';
       const nameParts = name.trim().split(' ');
       const first_name = nameParts.shift() || '';
       const last_name = nameParts.join(' ');
       
       return {
-        admission_number: String(row['Admission Number']),
+        admission_number: String(row[admissionHeader]),
         first_name,
         last_name,
-        gender: row['Gender'],
+        gender: row[genderHeader],
         class: className,
-        stream: row['Stream'] ? String(row['Stream']) : undefined,
-        upi: row['UPI'] ? String(row['UPI']) : undefined,
-        common_kcse: row['common.kcse'] ? Number(row['common.kcse']) : undefined,
-        contacts: row['Contacts'] ? String(row['Contacts']) : undefined,
+        stream: streamHeader && row[streamHeader] ? String(row[streamHeader]) : undefined,
+        upi: upiHeader && row[upiHeader] ? String(row[upiHeader]) : undefined,
+        common_kcse: kcseHeader && row[kcseHeader] ? Number(row[kcseHeader]) : undefined,
+        contacts: contactsHeader && row[contactsHeader] ? String(row[contactsHeader]) : undefined,
         rowNumber: index + 2,
       };
     });
