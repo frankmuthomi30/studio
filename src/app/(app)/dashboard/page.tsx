@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import type { AttendanceSession, ChoirMember, Student } from '@/lib/types';
+import DeleteSessionButton from './components/delete-session-button';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -102,11 +103,14 @@ export default function DashboardPage() {
                         <p className="font-medium">{session.practice_type}</p>
                         <p className="text-sm text-muted-foreground">{format(session.date.toDate(), 'EEEE, MMMM d, yyyy')}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-lg text-primary">
-                          {Object.values(session.attendance_map).filter(Boolean).length} / {Object.keys(session.attendance_map).length}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Present</p>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className="font-medium text-lg text-primary">
+                            {Object.values(session.attendance_map).filter(Boolean).length} / {Object.keys(session.attendance_map).length}
+                          </p>
+                          <p className="text-sm text-muted-foreground">Present</p>
+                        </div>
+                        <DeleteSessionButton sessionId={session.id} />
                       </div>
                     </div>
                     {index < (attendanceSessions?.length ?? 0) - 1 && <Separator className="mt-4" />}

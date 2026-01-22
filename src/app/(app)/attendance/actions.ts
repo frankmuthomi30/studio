@@ -2,7 +2,7 @@
 
 import type { AttendanceSession } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore/lite';
+import { getFirestore, doc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore/lite';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { Timestamp } from 'firebase/firestore/lite';
@@ -39,5 +39,20 @@ export async function saveAttendanceSession(
   } catch (e: any) {
     console.error('Error saving attendance session:', e);
     return { success: false, message: e.message || 'Failed to save attendance session.' };
+  }
+}
+
+export async function deleteAttendanceSession(sessionId: string): Promise<{ success: boolean; message: string }> {
+  const db = getDb();
+  const sessionRef = doc(db, 'choir_attendance', sessionId);
+
+  try {
+    await deleteDoc(sessionRef);
+    revalidatePath('/attendance');
+    revalidatePath('/dashboard');
+    return { success: true, message: 'Attendance session has been deleted successfully.' };
+  } catch (e: any) {
+    console.error('Error deleting attendance session:', e);
+    return { success: false, message: e.message || 'Failed to delete attendance session.' };
   }
 }

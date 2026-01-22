@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 
 type AttendanceSheetProps = {
   session: {
@@ -17,11 +17,12 @@ type AttendanceSheetProps = {
   members: Student[];
   onSave: (attendanceMap: Record<string, boolean>) => void;
   onCancel: () => void;
+  isSaving: boolean;
 };
 
-export default function AttendanceSheet({ session, members, onSave, onCancel }: AttendanceSheetProps) {
+export default function AttendanceSheet({ session, members, onSave, onCancel, isSaving }: AttendanceSheetProps) {
   const [attendance, setAttendance] = useState<Record<string, boolean>>(
-    members.reduce((acc, member) => ({ ...acc, [member.admission_number]: false }), {})
+    members.reduce((acc, member) => ({ ...acc, [member.admission_number]: true }), {})
   );
 
   const handleToggle = (admissionNumber: string) => {
@@ -85,11 +86,12 @@ export default function AttendanceSheet({ session, members, onSave, onCancel }: 
         </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-4">
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} disabled={isSaving}>
           <X className="mr-2 h-4 w-4" /> Cancel
         </Button>
-        <Button onClick={() => onSave(attendance)}>
-          <Check className="mr-2 h-4 w-4" /> Save Session
+        <Button onClick={() => onSave(attendance)} disabled={isSaving}>
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+          {isSaving ? 'Saving...' : 'Save Session'}
         </Button>
       </CardFooter>
     </Card>
