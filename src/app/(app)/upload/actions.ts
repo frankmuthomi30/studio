@@ -28,10 +28,11 @@ export type VerificationResult = {
 };
 
 export async function processExcelFile(
-  fileBuffer: Buffer,
+  fileAsBase64: string,
   className: string
 ): Promise<{ success: boolean; data?: VerificationResult; error?: string }> {
   try {
+    const fileBuffer = Buffer.from(fileAsBase64, 'base64');
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];

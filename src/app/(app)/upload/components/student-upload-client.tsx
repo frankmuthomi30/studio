@@ -50,7 +50,8 @@ export default function StudentUploadClient() {
 
     try {
       const fileBuffer = await values.file.arrayBuffer();
-      const result = await processExcelFile(Buffer.from(fileBuffer), values.className);
+      const base64 = Buffer.from(fileBuffer).toString('base64');
+      const result = await processExcelFile(base64, values.className);
 
       if (result.success && result.data) {
         setVerificationResult(result.data);
