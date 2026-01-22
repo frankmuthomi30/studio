@@ -1,0 +1,135 @@
+/**
+ * This ruleset enforces a security model for an internal school choir management application.
+ *
+ * Core Philosophy:
+ * The security model is based on an "Authenticated Access" principle. It assumes that any user who has successfully signed into the application is a trusted staff member with the authority to manage all data. Therefore, all read and write operations are granted to any authenticated user, while anonymous access is strictly denied.
+ *
+ * Data Structure:
+ * The data is organized into three distinct top-level collections:
+ * - /students/{admissionNumber}: Contains general information about each student.
+ * - /choir_members/{admissionNumber}: Tracks which students are members of the choir.
+ * - /choir_attendance/{attendanceId}: Stores attendance records for choir practices.
+ * This flat structure is designed for performance and simplicity, avoiding complex queries across different data trees.
+ *
+ * Key Security Decisions:
+ * - Authenticated Users Only: All access to data (read, write, delete) requires a user to be signed in. There is no public or anonymous access.
+ * - Audit Trail Integrity: While any authenticated user can create data, the rules enforce that the creator's user ID (e.g., `uploadedBy`, `addedBy`) is correctly recorded at the time of creation and cannot be modified later. This provides a reliable audit trail for all data entry.
+ * - No Data Shape Validation: In line with the prototyping philosophy, these rules do not enforce the specific schema of the documents (e.g., data types, required fields). The focus is solely on authorization—who can access the data—not the shape of the data itself.
+ * - List Operations: All collections are listable by any authenticated user, which is necessary for the application's UI to function (e.g., displaying lists of students or attendance records).
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the document being written to already exists.
+     * CRITICAL for preventing unintended side-effects in update/delete operations.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Validates that the creator's UID is correctly set on a new Student document.
+     */
+    function hasValidStudentDataOnCreate() {
+      return request.resource.data.uploadedBy == request.auth.uid;
+    }
+
+    /**
+     * Ensures the creator UID on a Student document cannot be changed after creation.
+     */
+    function isStudentUploaderImmutable() {
+      return request.resource.data.uploadedBy == resource.data.uploadedBy;
+    }
+
+    /**
+     * Validates that the creator's UID is correctly set on a new ChoirMember document.
+     */
+    function hasValidChoirMemberDataOnCreate() {
+      return request.resource.data.addedBy == request.auth.uid;
+    }
+
+    /**
+     * Ensures the creator UID on a ChoirMember document cannot be changed after creation.
+     */
+    function isChoirMemberAdderImmutable() {
+      return request.resource.data.addedBy == resource.data.addedBy;
+    }
+
+    /**
+     * Validates that the recorder's UID is correctly set on a new ChoirAttendance document.
+     */
+    function hasValidAttendanceDataOnCreate() {
+      return request.resource.data.recordedBy == request.auth.uid;
+    }
+
+    /**
+     * Ensures the recorder UID on a ChoirAttendance document cannot be changed after creation.
+     */
+    function isAttendanceRecorderImmutable() {
+      return request.resource.data.recordedBy == resource.data.recordedBy;
+    }
+
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Manages student records. Any authenticated user can read or write student data.
+     * @path /students/{admissionNumber}
+     * @allow (create) A signed-in user creates a new student document.
+     * @deny (create) An anonymous user attempts to create a student document.
+     * @principle Grants read/write access to any authenticated user. Enforces creator ID for auditing.
+     */
+    match /students/{admissionNumber} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && hasValidStudentDataOnCreate();
+      allow update: if isSignedIn() && isExistingDoc() && isStudentUploaderImmutable();
+      allow delete: if isSignedIn() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages choir membership records. Any authenticated user can add, view, or remove choir members.
+     * @path /choir_members/{admissionNumber}
+     * @allow (update) A signed-in user updates the status of a choir member.
+     * @deny (update) An anonymous user attempts to update a choir member.
+     * @principle Grants read/write access to any authenticated user. Enforces creator ID for auditing.
+     */
+    match /choir_members/{admissionNumber} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && hasValidChoirMemberDataOnCreate();
+      allow update: if isSignedIn() && isExistingDoc() && isChoirMemberAdderImmutable();
+      allow delete: if isSignedIn() && isExistingDoc();
+    }
+
+    /**
+     * @description Manages choir attendance records. Any authenticated user can record and manage attendance.
+     * @path /choir_attendance/{attendanceId}
+     * @allow (get) A signed-in user reads a specific attendance record.
+     * @deny (get) An anonymous user attempts to read an attendance record.
+     * @principle Grants read/write access to any authenticated user. Enforces recorder ID for auditing.
+     */
+    match /choir_attendance/{attendanceId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && hasValidAttendanceDataOnCreate();
+      allow update: if isSignedIn() && isExistingDoc() && isAttendanceRecorderImmutable();
+      allow delete: if isSignedIn() && isExistingDoc();
+    }
+  }
+}
