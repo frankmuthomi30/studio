@@ -28,29 +28,53 @@ export default function RegisterReportPage() {
     }
 
     const handleExportPdf = () => {
-        if (!date?.from) return;
+        const reportElement = document.getElementById('register-report');
+        const sessionTitle = reportElement?.querySelector('h3')?.innerText;
+        const totalPresentText = reportElement?.querySelector('#total-present')?.innerText;
 
-        const doc = new jsPDF({ orientation: "landscape" });
+        if (!date?.from || !reportElement) return;
+
+        const doc = new jsPDF({ orientation: "portrait" });
 
         const schoolName = "Gatura Girls High School";
-        const reportTitle = "Full Choir Attendance Register";
-        const dateRange = `Date Range: ${format(date.from, "MMM dd, yyyy")} - ${date.to ? format(date.to, "MMM dd, yyyy") : format(date.from, "MMM dd, yyyy")}`;
+        const reportTitleText = "Full Choir Attendance Register";
 
+        // Set font for header
+        doc.setFont('times', 'bold');
         doc.setFontSize(18);
-        doc.text(schoolName, 14, 20);
+        doc.text(schoolName, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+
+        doc.setFont('times', 'normal');
         doc.setFontSize(14);
-        doc.text(reportTitle, 14, 28);
-        doc.setFontSize(10);
-        doc.text(dateRange, 14, 34);
+        doc.text(reportTitleText, doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+
+        if (sessionTitle) {
+            doc.setFontSize(12);
+            doc.text(sessionTitle, doc.internal.pageSize.getWidth() / 2, 36, { align: 'center' });
+        }
 
         (doc as any).autoTable({
             html: '#register-report-table',
-            startY: 40,
+            startY: 45,
             theme: 'grid',
             headStyles: {
-                fillColor: '#107C41' // green theme color
+                fillColor: '#107C41',
+                font: 'times',
+                fontStyle: 'bold'
             },
+            styles: {
+                font: 'times',
+                fontStyle: 'normal'
+            }
         });
+
+        const finalY = (doc as any).lastAutoTable.finalY || 60; // fallback startY
+
+        if (totalPresentText) {
+            doc.setFont('times', 'bold');
+            doc.setFontSize(12);
+            doc.text(totalPresentText, 14, finalY + 10);
+        }
 
         doc.save(`Gatura-Girls-Choir-Register-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
@@ -59,13 +83,13 @@ export default function RegisterReportPage() {
     <>
       <PageHeader
         title="Full Choir Attendance Register"
-        subtitle="Generate a register for a specific date range, class, or term."
+        subtitle="Generate a register for a specific date range."
       />
       <div className="container mx-auto p-4 md:p-8 space-y-8">
         <Card>
             <CardHeader>
                 <CardTitle>Report Filters</CardTitle>
-                <CardDescription>Select filters to generate the register.</CardDescription>
+                <CardDescription>Select filters to generate the register. The report will be based on the first session found in the selected range.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-end gap-4">
                 <div className="grid gap-2">
@@ -107,12 +131,12 @@ export default function RegisterReportPage() {
                         </PopoverContent>
                     </Popover>
                 </div>
-                <Button onClick={handleGenerate}>
+                <Button onClick={handleGenerate} disabled={!date?.from}>
                     <Search className="mr-2 h-4 w-4" />
                     Generate Report
                 </Button>
                 <div className="ml-auto flex gap-2">
-                    <Button variant="outline" onClick={handlePrint}>
+                    <Button variant="outline" onClick={handlePrint} disabled={!reportFilters.dateRange?.from}>
                         <Printer className="mr-2 h-4 w-4" />
                         Print
                     </Button>

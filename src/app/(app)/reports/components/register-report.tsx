@@ -3,7 +3,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { Check, Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { AttendanceSession, ChoirMember, Student } from '@/lib/types';
@@ -45,10 +45,28 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, filters.dateRange]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    const activeMembersDetails = useMemo(() => {
-        if (!students) return [];
-        return students.sort((a, b) => a.admission_number.localeCompare(b.admission_number));
-    }, [students]);
+    const reportData = useMemo(() => {
+        if (!students || !sessions || sessions.length === 0) {
+            return null;
+        }
+
+        const session = sessions[0]; // Use the first session in the range
+        const studentDetails = students.sort((a, b) => a.first_name.localeCompare(b.first_name));
+
+        const reportRows = studentDetails.map(student => ({
+            ...student,
+            present: session.attendance_map[student.admission_number] === true,
+        }));
+        
+        const presentCount = reportRows.filter(r => r.present).length;
+
+        return {
+            session,
+            rows: reportRows,
+            presentCount,
+            totalCount: reportRows.length
+        };
+    }, [students, sessions]);
 
     if (!filters.dateRange?.from) {
         return (
@@ -65,9 +83,33 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
             </div>
         );
     }
+
+    if (!reportData || !sessions || sessions.length === 0) {
+        return (
+            <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
+                 <header className="hidden print:flex items-center justify-between border-b pb-4">
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-bold text-gray-800">Gatura Girls High School</h2>
+                        <p className="font-headline text-lg text-gray-600">Full Choir Attendance Register</p>
+                    </div>
+                    {schoolLogo && (
+                    <Image
+                        src={schoolLogo.imageUrl}
+                        alt={schoolLogo.description}
+                        width={80}
+                        height={80}
+                        className="rounded-full"
+                        data-ai-hint={schoolLogo.imageHint}
+                    />
+                    )}
+                </header>
+                <p className="text-muted-foreground text-center p-4">No attendance sessions found for the selected date range.</p>
+            </div>
+        );
+    }
     
   return (
-    <div className="report-preview-landscape mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
+    <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
         <header className="flex items-center justify-between border-b pb-4">
             <div className="space-y-1">
                 <h2 className="text-2xl font-bold text-gray-800">Gatura Girls High School</h2>
@@ -84,8 +126,11 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
             />
             )}
         </header>
-        <div className="text-sm text-gray-600 mt-2">
-            <strong>Date Range:</strong> {filters.dateRange.from && format(filters.dateRange.from, 'MMM dd, yyyy')} - {filters.dateRange.to && format(filters.dateRange.to, 'MMM dd, yyyy')}
+        <div className="text-center my-4">
+            <h3 className="font-headline text-xl font-semibold text-gray-700">
+                {reportData.session.practice_type} on {format(reportData.session.date.toDate(), 'EEEE, MMMM d, yyyy')}
+            </h3>
+            <p className="text-sm text-gray-500">(Showing first session in selected date range)</p>
         </div>
 
         <section className="mt-6">
@@ -95,43 +140,26 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                         <TableHead className="w-[100px]">Adm. No.</TableHead>
                         <TableHead className="min-w-[150px]">Full Name</TableHead>
                         <TableHead className="w-[100px]">Class</TableHead>
-                        {sessions?.map(session => (
-                            <TableHead key={session.id} className="text-center rotate-[-45deg] !h-24 !pb-2 !align-bottom">
-                                <span className="whitespace-nowrap">{format(session.date.toDate(), 'MMM dd')}</span>
-                            </TableHead>
-                        ))}
-                        <TableHead className="text-center font-bold">Total Present</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {activeMembersDetails.map(member => {
-                        if (!member) return null;
-                        let presentCount = 0;
+                    {reportData.rows.map(member => {
                         return (
                             <TableRow key={member.admission_number}>
                                 <TableCell>{member.admission_number}</TableCell>
                                 <TableCell>{member.first_name} {member.last_name}</TableCell>
                                 <TableCell>{member.class}</TableCell>
-                                {sessions?.map(session => {
-                                    const isPresent = session.attendance_map[member.admission_number];
-                                    if(isPresent) presentCount++;
-                                    return (
-                                        <TableCell key={`${member.admission_number}-${session.id}`} className="text-center">
-                                            {isPresent === true && <Check className="h-4 w-4 text-green-600 mx-auto" />}
-                                            {isPresent === false && <X className="h-4 w-4 text-red-600 mx-auto" />}
-                                            {isPresent === undefined && <span className="text-gray-400">-</span>}
-                                        </TableCell>
-                                    )
-                                })}
-                                <TableCell className="text-center font-bold">{presentCount}</TableCell>
                             </TableRow>
                         )
                     })}
                 </TableBody>
             </Table>
-            {(!sessions || sessions.length === 0) && (
-                <p className="text-muted-foreground text-center p-4">No attendance sessions found for the selected date range.</p>
-            )}
+        </section>
+        
+        <section className="mt-6">
+            <p id="total-present" className="text-lg font-bold text-gray-800">
+                Total Present: {reportData.presentCount} / {reportData.totalCount}
+            </p>
         </section>
 
         <footer className="mt-8 pt-4 text-sm text-gray-500 border-t">
