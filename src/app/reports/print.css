@@ -1,0 +1,100 @@
+/* General Print Styles */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .print-container, .print-container * {
+        visibility: visible;
+    }
+
+    .print-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Styles for individual report (portrait) */
+    .report-preview {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        margin: 0 auto;
+        padding: 1cm;
+        color: black !important;
+        background-color: white !important;
+    }
+
+    .report-preview h1,
+    .report-preview h2,
+    .report-preview h3,
+    .report-preview p,
+    .report-preview span,
+    .report-preview td,
+    .report-preview th {
+        color: black !important;
+    }
+
+    .report-preview .bg-primary\/10 {
+        background-color: #eef2ff !important;
+    }
+
+    .report-preview .text-primary {
+        color: #3F51B5 !important;
+    }
+
+    .report-preview .bg-green-100 {
+        background-color: #dcfce7 !important;
+    }
+    .report-preview .text-green-800 {
+        color: #166534 !important;
+    }
+    .report-preview .bg-red-100 {
+        background-color: #fee2e2 !important;
+    }
+    .report-preview .text-red-800 {
+        color: #991b1b !important;
+    }
+
+    /* Styles for register report (landscape) */
+    @page {
+        size: A4 landscape;
+        margin: 1cm;
+    }
+
+    .report-preview-landscape {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        margin: 0 auto;
+        padding: 0.5cm;
+        color: black !important;
+        background-color: white !important;
+    }
+
+    .report-preview-landscape .report-table {
+        font-size: 8pt;
+    }
+
+    .report-preview-landscape .report-table th, 
+    .report-preview-landscape .report-table td {
+        padding: 4px;
+    }
+    
+    .report-preview-landscape h1,
+    .report-preview-landscape h2,
+    .report-preview-landscape h3,
+    .report-preview-landscape p,
+    .report-preview-landscape span,
+    .report-preview-landscape td,
+    .report-preview-landscape th {
+        color: black !important;
+    }
+}
