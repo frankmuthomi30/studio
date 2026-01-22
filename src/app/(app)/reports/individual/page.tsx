@@ -60,7 +60,7 @@ export default function IndividualReportPage() {
                                 <SelectValue placeholder="Select a student..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {students?.sort((a,b) => a.first_name.localeCompare(b.first_name)).map(student => (
+                                {students?.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map(student => (
                                     <SelectItem key={student.id} value={student.id!}>
                                         {student.first_name} {student.last_name} ({student.admission_number})
                                     </SelectItem>
