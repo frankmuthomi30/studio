@@ -20,89 +20,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ----------------------------------------------------------------------
-    // Helper Functions
-    // ----------------------------------------------------------------------
-    function isSignedIn() {
-      // This has been set to true to allow public access, as authentication is disabled.
-      return true;
-    }
-
-    function isExistingDoc() {
-      return resource != null;
-    }
-
-    // The following functions have been modified to remove authentication checks.
-    function hasValidStudentDataOnCreate() {
-      return true;
-    }
-    function isStudentUploaderImmutable() {
-      return true;
-    }
-
-    function hasValidChoirDataOnCreate() {
-        return true;
-    }
-    function isChoirCreatorImmutable() {
-        return true;
-    }
-
-    function hasValidChoirMemberDataOnCreate() {
-      return true;
-    }
-    function isChoirMemberAdderImmutable() {
-      return true;
-    }
-
-    function hasValidAttendanceDataOnCreate() {
-      return true;
-    }
-    function isAttendanceRecorderImmutable() {
-      return true;
-    }
-
-    // ----------------------------------------------------------------------
-    // Collection Rules
-    // ----------------------------------------------------------------------
-
     /**
-     * @description Manages choir groups. Any authenticated user can create, read, or write choir data.
+     * @description Manages choir groups. Any user can create, read, or write choir data.
      */
     match /choirs/{choirId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && hasValidChoirDataOnCreate();
-      allow update: if isSignedIn() && isExistingDoc() && isChoirCreatorImmutable();
-      allow delete: if isSignedIn() && isExistingDoc();
+      allow read, write: if true;
       
       /**
        * @description Manages members within a specific choir.
        */
       match /members/{admissionNumber} {
-        allow get, list: if isSignedIn();
-        allow create: if isSignedIn() && hasValidChoirMemberDataOnCreate();
-        allow update: if isSignedIn() && isExistingDoc() && isChoirMemberAdderImmutable();
-        allow delete: if isSignedIn() && isExistingDoc();
+        allow read, write: if true;
       }
     }
 
     /**
-     * @description Manages student records. Any authenticated user can read or write student data.
+     * @description Manages student records. Any user can read or write student data.
      */
     match /students/{admissionNumber} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && hasValidStudentDataOnCreate();
-      allow update: if isSignedIn() && isExistingDoc() && isStudentUploaderImmutable();
-      allow delete: if isSignedIn() && isExistingDoc();
+      allow read, write: if true;
     }
 
     /**
      * @description Manages choir attendance records.
      */
     match /choir_attendance/{attendanceId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && hasValidAttendanceDataOnCreate();
-      allow update: if isSignedIn() && isExistingDoc() && isAttendanceRecorderImmutable();
-      allow delete: if isSignedIn() && isExistingDoc();
+      allow read, write: if true;
     }
   }
 }
