@@ -17,7 +17,9 @@ export default function AllMembersReport({ students }: AllMembersReportProps) {
         // Sort by class first, then by name
         const classComparison = (a.class || '').localeCompare(b.class || '');
         if (classComparison !== 0) return classComparison;
-        return (a.first_name || '').localeCompare(b.first_name || '');
+        const a_name = `${a.first_name} ${a.last_name}`;
+        const b_name = `${b.first_name} ${b.last_name}`;
+        return a_name.localeCompare(b_name);
     });
 
   return (
@@ -40,7 +42,7 @@ export default function AllMembersReport({ students }: AllMembersReportProps) {
         </header>
 
         <section className="mt-6">
-            <Table>
+            <Table id="all-members-report-table">
                 <TableHeader>
                     <TableRow>
                         <TableHead>Admission No.</TableHead>
