@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import PageHeader from '@/components/page-header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Users, ArrowRight, BookUser } from 'lucide-react';
+import { User, Users, ArrowRight, BookUser, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const reportTypes = [
@@ -23,6 +23,12 @@ const reportTypes = [
     description: 'View and print a list of all current and past choir members.',
     href: '/reports/all-members',
   },
+  {
+    icon: Award,
+    title: 'Top Attendees Report',
+    description: 'See a ranked list of members with the highest attendance.',
+    href: '/reports/top-attendees',
+  }
 ];
 
 export default function ReportsPage() {
