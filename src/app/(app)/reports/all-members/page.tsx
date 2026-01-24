@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function AllMembersReportPage() {
     const firestore = useFirestore();
@@ -43,28 +44,40 @@ export default function AllMembersReportPage() {
 
     const handleExportPdf = () => {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     
-        const schoolName = "Gatura Girls High School";
-        const reportTitleText = "All Choir Members Report";
         const totalMembersText = `Total Members: ${allChoirStudents.length}`;
     
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
+        let cursorY = margin;
     
         // --- PDF Header ---
+        if (schoolLogo?.imageUrl) {
+            doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
+        }
         doc.setFont('times', 'bold');
-        doc.setFontSize(18);
-        doc.text(schoolName, pageWidth / 2, margin, { align: 'center' });
+        doc.setFontSize(20);
+        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
     
         doc.setFont('times', 'normal');
+        doc.setFontSize(9);
+        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
+        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
+        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
+        doc.text("0793328863", margin + 25, cursorY + 24);
+        
+        doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text(reportTitleText, pageWidth / 2, margin + 8, { align: 'center' });
+        doc.text("All Choir Members Report", pageWidth - margin, cursorY + 15, { align: 'right' });
+    
+        cursorY += 30;
     
         // --- Table ---
         (doc as any).autoTable({
             html: '#all-members-report-table',
-            startY: margin + 20,
+            startY: cursorY,
             theme: 'grid',
             headStyles: {
                 fillColor: '#107C41', // Primary color

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import React from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 
 export default function RegisterReportPage() {
@@ -32,9 +33,7 @@ export default function RegisterReportPage() {
         if (!reportFilters.dateRange?.from || !reportElement) return;
 
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-        const schoolName = "Gatura Girls High School";
-        const reportTitleText = "Full Choir Attendance Register";
+        const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
 
         const sessionTitle = reportElement?.querySelector('h3')?.innerText;
         const sessionSubtitle = reportElement?.querySelector('h3 + p')?.innerText;
@@ -43,32 +42,47 @@ export default function RegisterReportPage() {
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
+        let cursorY = margin;
 
         // --- PDF Header ---
+        if (schoolLogo?.imageUrl) {
+            doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
+        }
         doc.setFont('times', 'bold');
-        doc.setFontSize(18);
-        doc.text(schoolName, pageWidth / 2, margin, { align: 'center' });
-
+        doc.setFontSize(20);
+        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
+    
         doc.setFont('times', 'normal');
+        doc.setFontSize(9);
+        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
+        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
+        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
+        doc.text("0793328863", margin + 25, cursorY + 24);
+        
+        doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text(reportTitleText, pageWidth / 2, margin + 8, { align: 'center' });
+        doc.text("Full Choir Attendance Register", pageWidth - margin, cursorY + 15, { align: 'right' });
+    
+        cursorY += 30;
 
         // --- Session Info ---
         if (sessionTitle) {
             doc.setFont('times', 'bold');
             doc.setFontSize(12);
-            doc.text(sessionTitle, pageWidth / 2, margin + 20, { align: 'center' });
+            doc.text(sessionTitle, pageWidth / 2, cursorY, { align: 'center' });
+            cursorY += 5;
         }
         if (sessionSubtitle) {
             doc.setFont('times', 'italic');
             doc.setFontSize(10);
-            doc.text(sessionSubtitle, pageWidth / 2, margin + 25, { align: 'center' });
+            doc.text(sessionSubtitle, pageWidth / 2, cursorY, { align: 'center' });
+            cursorY += 7;
         }
 
         // --- Table ---
         (doc as any).autoTable({
             html: '#register-report-table',
-            startY: margin + 32,
+            startY: cursorY,
             theme: 'grid',
             headStyles: {
                 fillColor: '#107C41',

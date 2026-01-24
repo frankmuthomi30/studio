@@ -100,21 +100,30 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     if (!reportData || !sessions || sessions.length === 0) {
         return (
             <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
-                 <header className="hidden print:flex items-center justify-between border-b pb-4">
-                    <div className="space-y-1">
-                        <h2 className="text-2xl font-bold text-gray-800">Gatura Girls High School</h2>
-                        <p className="font-headline text-lg text-gray-600">Full Choir Attendance Register</p>
+                 <header className="flex items-start justify-between border-b-4 border-gray-800 pb-4">
+                    <div className="flex items-start gap-4">
+                        {schoolLogo && (
+                            <Image
+                                src={schoolLogo.imageUrl}
+                                alt={schoolLogo.description}
+                                width={80}
+                                height={80}
+                                data-ai-hint={schoolLogo.imageHint}
+                            />
+                        )}
+                        <div className="space-y-1 font-serif">
+                            <h2 className="text-3xl font-bold text-gray-800 tracking-wider">GATURA GIRLS</h2>
+                            <div className="text-xs text-gray-600">
+                                <p>30-01013, Muranga.</p>
+                                <p>gaturagirls@gmail.com</p>
+                                <p>https://stteresagaturagirls.sc.ke/</p>
+                                <p>0793328863</p>
+                            </div>
+                        </div>
                     </div>
-                    {schoolLogo && (
-                    <Image
-                        src={schoolLogo.imageUrl}
-                        alt={schoolLogo.description}
-                        width={80}
-                        height={80}
-                        className="rounded-full"
-                        data-ai-hint={schoolLogo.imageHint}
-                    />
-                    )}
+                    <div className="text-right">
+                        <h3 className="font-headline text-xl text-gray-700">Full Choir Attendance Register</h3>
+                    </div>
                 </header>
                 <p className="text-muted-foreground text-center p-4">No attendance sessions found for the selected date range.</p>
             </div>
@@ -123,21 +132,30 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     
   return (
     <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
-        <header className="flex items-center justify-between border-b pb-4">
-            <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-gray-800">Gatura Girls High School</h2>
-                <p className="font-headline text-lg text-gray-600">Full Choir Attendance Register</p>
+        <header className="flex items-start justify-between border-b-4 border-gray-800 pb-4">
+            <div className="flex items-start gap-4">
+                {schoolLogo && (
+                    <Image
+                        src={schoolLogo.imageUrl}
+                        alt={schoolLogo.description}
+                        width={80}
+                        height={80}
+                        data-ai-hint={schoolLogo.imageHint}
+                    />
+                )}
+                <div className="space-y-1 font-serif">
+                    <h2 className="text-3xl font-bold text-gray-800 tracking-wider">GATURA GIRLS</h2>
+                    <div className="text-xs text-gray-600">
+                        <p>30-01013, Muranga.</p>
+                        <p>gaturagirls@gmail.com</p>
+                        <p>https://stteresagaturagirls.sc.ke/</p>
+                        <p>0793328863</p>
+                    </div>
+                </div>
             </div>
-            {schoolLogo && (
-            <Image
-                src={schoolLogo.imageUrl}
-                alt={schoolLogo.description}
-                width={80}
-                height={80}
-                className="rounded-full"
-                data-ai-hint={schoolLogo.imageHint}
-            />
-            )}
+            <div className="text-right">
+                <h3 className="font-headline text-xl text-gray-700">Full Choir Attendance Register</h3>
+            </div>
         </header>
         <div className="text-center my-4">
             <h3 className="font-headline text-xl font-semibold text-gray-700">
@@ -180,7 +198,11 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                 <p>Prepared by: Mr. Muthomi (Choir Director)</p>
                 <p>Page 1 of 1</p>
             </div>
-            <p className="text-center text-xs mt-4">{generatedDate ? `Generated on ${format(generatedDate, 'PPp')}` : ''}</p>
+            {generatedDate && (
+              <p className="text-center text-xs mt-4">
+                Generated on {format(generatedDate, 'PPp')}
+              </p>
+            )}
         </footer>
     </div>
   );
