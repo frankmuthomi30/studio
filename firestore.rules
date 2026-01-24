@@ -1,8 +1,9 @@
 /**
- * This ruleset enforces a security model for an internal school choir management application.
+ * This ruleset has been modified for public access.
  *
  * Core Philosophy:
- * The security model is based on an "Authenticated Access" principle. It assumes that any user who has successfully signed into the application is a trusted staff member with the authority to manage all data. Therefore, all read and write operations are granted to any authenticated user, while anonymous access is strictly denied.
+ * The security model has been opened for public access. It allows any client, authenticated or not,
+ * to read and write to the database. This is generally not recommended for production environments.
  *
  * Data Structure:
  * - /choirs/{choirId}: Contains information about each choir group.
@@ -12,8 +13,7 @@
  * This structure is designed for performance and scalability.
  *
  * Key Security Decisions:
- * - Authenticated Users Only: All access to data (read, write, delete) requires a user to be signed in.
- * - Audit Trail Integrity: The rules enforce that the creator's user ID is correctly recorded at the time of creation and cannot be modified later.
+ * - Public Access: All access to data (read, write, delete) is public.
  * - No Data Shape Validation: The focus is solely on authorization, not schema enforcement.
  */
 rules_version = '2';
@@ -24,43 +24,41 @@ service cloud.firestore {
     // Helper Functions
     // ----------------------------------------------------------------------
     function isSignedIn() {
-      return request.auth != null;
+      // This has been set to true to allow public access, as authentication is disabled.
+      return true;
     }
 
     function isExistingDoc() {
       return resource != null;
     }
 
-    // --- Student Functions ---
+    // The following functions have been modified to remove authentication checks.
     function hasValidStudentDataOnCreate() {
-      return request.resource.data.uploadedBy == request.auth.uid;
+      return true;
     }
     function isStudentUploaderImmutable() {
-      return request.resource.data.uploadedBy == resource.data.uploadedBy;
+      return true;
     }
 
-    // --- Choir Functions ---
     function hasValidChoirDataOnCreate() {
-        return request.resource.data.createdBy == request.auth.uid;
+        return true;
     }
     function isChoirCreatorImmutable() {
-        return request.resource.data.createdBy == resource.data.createdBy;
+        return true;
     }
 
-    // --- Choir Member Functions ---
     function hasValidChoirMemberDataOnCreate() {
-      return request.resource.data.addedBy == request.auth.uid;
+      return true;
     }
     function isChoirMemberAdderImmutable() {
-      return request.resource.data.addedBy == resource.data.addedBy;
+      return true;
     }
 
-    // --- Attendance Functions ---
     function hasValidAttendanceDataOnCreate() {
-      return request.resource.data.recordedBy == request.auth.uid;
+      return true;
     }
     function isAttendanceRecorderImmutable() {
-      return request.resource.data.recordedBy == resource.data.recordedBy;
+      return true;
     }
 
     // ----------------------------------------------------------------------
