@@ -1,23 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import type { Student, ChoirMember, AttendanceSession } from '@/lib/types';
+import { useState, useMemo } from 'react';
+import type { Student, ChoirMember, AttendanceSession, Choir } from '@/lib/types';
 import { saveAttendanceSession } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, PlusCircle, ListChecks, Edit } from 'lucide-react';
+import { CalendarIcon, Loader2, PlusCircle, ListChecks, Edit, Music } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AttendanceSheet from './attendance-sheet';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import DeleteSessionButton from '../../dashboard/components/delete-session-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type ClientSession = Omit<AttendanceSession, 'date' | 'recorded_at' | 'uploaded_at'> & { date: Date };
 
@@ -32,35 +32,62 @@ export default function AttendanceClient() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { isUserLoading: authLoading } = useUser();
+  const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
+
+  const choirsQuery = useMemoFirebase(() => 
+    !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, 
+  [firestore, authLoading]);
+  const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(choirsQuery);
+
+  const selectedChoir = useMemo(() => {
+      if (!choirs || !selectedChoirId) return null;
+      return choirs.find(c => c.id === selectedChoirId);
+  }, [choirs, selectedChoirId]);
 
   const activeMembersQuery = useMemoFirebase(() =>
-    !authLoading && firestore ? query(collection(firestore, 'choir_members'), where('status', '==', 'active')) : null
-  , [firestore, authLoading]);
+    !authLoading && firestore && selectedChoirId
+      ? query(collection(firestore, 'choirs', selectedChoirId, 'members'), where('status', '==', 'active'))
+      : null
+  , [firestore, selectedChoirId, authLoading]);
   const { data: activeChoirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(activeMembersQuery);
   
+  const studentAdmissionNumbers = useMemo(() => {
+    if (!activeChoirMembers) return [];
+    return activeChoirMembers.map(m => m.admission_number);
+  }, [activeChoirMembers]);
+
   const studentQuery = useMemoFirebase(() =>
-    !authLoading && firestore && activeChoirMembers && activeChoirMembers.length > 0 ? 
-    query(collection(firestore, 'students'), where('admission_number', 'in', activeChoirMembers.map(m => m.admission_number))) 
+    !authLoading && firestore && studentAdmissionNumbers.length > 0
+    ? query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers)) 
     : null
-  , [firestore, activeChoirMembers, authLoading]);
+  , [firestore, studentAdmissionNumbers, authLoading]);
   const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
 
   const sessionsQuery = useMemoFirebase(() =>
-    !authLoading && firestore
-      ? query(collection(firestore, 'choir_attendance'), orderBy('date', 'desc'))
+    !authLoading && firestore && selectedChoirId
+      ? query(collection(firestore, 'choir_attendance'), where('choirId', '==', selectedChoirId))
       : null
-  , [firestore, authLoading]);
+  , [firestore, selectedChoirId, authLoading]);
   const { data: attendanceSessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
+
+  const sortedAttendanceSessions = useMemo(() => {
+    if (!attendanceSessions) return [];
+    return [...attendanceSessions].sort((a, b) => b.date.toMillis() - a.date.toMillis());
+  }, [attendanceSessions]);
 
   const activeStudents = useMemo(() => students || [], [students]);
 
   const handleCreateAndSaveSession = async () => {
+    if (!selectedChoir) {
+        toast({ variant: 'destructive', title: 'No Choir Selected', description: 'Please select a choir to create a session.' });
+        return;
+    }
     if (!newSession.date || !newSession.practice_type) {
       toast({ variant: 'destructive', title: 'Incomplete Information', description: 'Please provide both a date and a practice type.' });
       return;
     }
     if (!activeChoirMembers) {
-      toast({ variant: 'destructive', title: 'No Choir Members', description: 'Cannot create a session without active choir members.' });
+      toast({ variant: 'destructive', title: 'No Active Members', description: `There are no active members in ${selectedChoir.name} to create a session for.` });
       return;
     }
 
@@ -72,6 +99,8 @@ export default function AttendanceClient() {
     }, {} as Record<string, boolean>);
 
     const result = await saveAttendanceSession({
+      choirId: selectedChoir.id,
+      choirName: selectedChoir.name,
       date: newSession.date,
       practice_type: newSession.practice_type,
       attendance_map: initialAttendanceMap,
@@ -97,10 +126,12 @@ export default function AttendanceClient() {
   };
 
   const handleSaveAttendance = async (attendanceMap: Record<string, boolean>) => {
-    if (!sessionToEdit) return;
+    if (!sessionToEdit || !selectedChoir) return;
     setIsSaving(true);
     
     const result = await saveAttendanceSession({
+      choirId: selectedChoir.id,
+      choirName: selectedChoir.name,
       date: sessionToEdit.date,
       practice_type: sessionToEdit.practice_type,
       attendance_map: attendanceMap,
@@ -116,7 +147,7 @@ export default function AttendanceClient() {
     setIsSaving(false);
   };
   
-  const isLoading = authLoading || isCreating || isSaving || membersLoading || studentsLoading;
+  const isLoading = authLoading || isCreating || isSaving || membersLoading || studentsLoading || choirsLoading;
 
   if (sessionToEdit) {
     return (
@@ -140,16 +171,32 @@ export default function AttendanceClient() {
                   <CardTitle className="flex items-center gap-2">
                       <PlusCircle className="text-primary"/> Create New Session
                   </CardTitle>
-                  <CardDescription>Create a new practice session. It will appear in the list, where you can then click to edit it.</CardDescription>
+                  <CardDescription>Select a choir, then enter the details for a new practice session.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Choir</label>
+                    <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined} disabled={choirsLoading}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder={choirsLoading ? "Loading choirs..." : "Select a choir..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {choirs?.map(choir => (
+                                <SelectItem key={choir.id} value={choir.id}>
+                                    {choir.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid gap-2">
                       <label className="text-sm font-medium">Practice Date</label>
                       <Popover>
                       <PopoverTrigger asChild>
                           <Button
-                          variant={'outline'}
-                          className={cn('w-full justify-start text-left font-normal', !newSession.date && 'text-muted-foreground')}
+                            variant={'outline'}
+                            disabled={!selectedChoirId}
+                            className={cn('w-full justify-start text-left font-normal', !newSession.date && 'text-muted-foreground')}
                           >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {newSession.date ? format(newSession.date, 'PPP') : <span>Pick a date</span>}
@@ -170,15 +217,16 @@ export default function AttendanceClient() {
                       <Input
                       placeholder="e.g., Evening Practice"
                       value={newSession.practice_type}
+                      disabled={!selectedChoirId}
                       onChange={(e) => setNewSession(prev => ({ ...prev, practice_type: e.target.value }))}
                       />
                   </div>
-                  <Button onClick={handleCreateAndSaveSession} className="w-full" disabled={isLoading || activeStudents.length === 0}>
+                  <Button onClick={handleCreateAndSaveSession} className="w-full" disabled={isLoading || !selectedChoirId || activeStudents.length === 0}>
                     {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isCreating ? 'Saving...' : 'Create & Save Session'}
                   </Button>
-                  {activeStudents.length === 0 && !membersLoading && (
-                    <p className="text-xs text-center text-muted-foreground">You must have active choir members to create a session.</p>
+                  {selectedChoirId && activeStudents.length === 0 && !membersLoading && (
+                    <p className="text-xs text-center text-muted-foreground">This choir has no active members. Add members in the 'Choirs' section.</p>
                   )}
               </CardContent>
             </Card>
@@ -190,16 +238,16 @@ export default function AttendanceClient() {
                 <ListChecks className="text-primary"/>
                 Past Attendance Sessions
               </CardTitle>
-              <CardDescription>Click on a session to view or edit its attendance.</CardDescription>
+              <CardDescription>{selectedChoir ? `Showing sessions for ${selectedChoir.name}.` : 'Select a choir to see past sessions.'}</CardDescription>
             </CardHeader>
             <CardContent>
-                {sessionsLoading && (
+                {(sessionsLoading && selectedChoirId) && (
                     <div className="flex justify-center items-center h-48">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                 )}
               <div className="space-y-2">
-                {attendanceSessions && attendanceSessions.length > 0 ? attendanceSessions.map((session, index) => (
+                {sortedAttendanceSessions && sortedAttendanceSessions.length > 0 ? sortedAttendanceSessions.map((session, index) => (
                   <div key={session.id}>
                     <div 
                         className="flex justify-between items-center p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
@@ -222,10 +270,15 @@ export default function AttendanceClient() {
                         <Edit className="h-4 w-4 text-muted-foreground"/>
                       </div>
                     </div>
-                    {index < (attendanceSessions?.length ?? 0) - 1 && <Separator className="my-1" />}
+                    {index < (sortedAttendanceSessions?.length ?? 0) - 1 && <Separator className="my-1" />}
                   </div>
                 )) : (
-                    !sessionsLoading && <p className="text-muted-foreground text-center p-4">No attendance sessions recorded yet.</p>
+                    !sessionsLoading && (
+                        <div className="text-center p-8 text-muted-foreground border rounded-lg flex flex-col items-center gap-4">
+                            <Music className="h-10 w-10" />
+                            {selectedChoirId ? `No attendance sessions recorded yet for ${selectedChoir?.name}.` : 'Please select a choir to begin.'}
+                        </div>
+                    )
                 )}
               </div>
             </CardContent>

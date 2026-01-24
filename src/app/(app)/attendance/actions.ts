@@ -19,7 +19,7 @@ export async function saveAttendanceSession(
 ): Promise<{ success: boolean; message: string }> {
   const db = getDb();
   
-  const id = `${sessionData.date.toISOString().split('T')[0]}_${sessionData.practice_type.toLowerCase().replace(/\s+/g, '-')}`;
+  const id = `${sessionData.date.toISOString().split('T')[0]}_${sessionData.choirId}_${sessionData.practice_type.toLowerCase().replace(/\s+/g, '-')}`;
   
   const newSession: Omit<AttendanceSession, 'id'> = {
     ...sessionData,
@@ -32,7 +32,7 @@ export async function saveAttendanceSession(
   const sessionRef = doc(db, 'choir_attendance', id);
 
   try {
-    await setDoc(sessionRef, newSession);
+    await setDoc(sessionRef, newSession, { merge: true });
     revalidatePath('/attendance');
     revalidatePath('/dashboard');
     return { success: true, message: 'Attendance session has been saved successfully.' };
