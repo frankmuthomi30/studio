@@ -3,7 +3,7 @@ import PageHeader from '@/components/page-header';
 import { useCollection, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, use } from 'react';
 import type { Student, Choir, ChoirMember, StudentWithChoirStatus } from '@/lib/types';
 import MemberManagementClient from './components/member-management-client';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 export default function ChoirMemberPage({ params }: { params: { choirId: string } }) {
-  const { choirId } = params;
+  const { choirId } = use(params as any);
   const firestore = useFirestore();
 
   const choirRef = useMemoFirebase(() => 
