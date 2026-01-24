@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { AttendanceSession, Student } from '@/lib/types';
 import { useMemo } from 'react';
 import type { DateRange } from 'react-day-picker';
@@ -44,13 +44,16 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
             collection(firestore, 'choir_attendance'),
             where('choirId', '==', filters.choirId),
             where('date', '>=', fromDate),
-            where('date', '<=', endOfDay),
-            orderBy('date', 'asc')
+            where('date', '<=', endOfDay)
         );
     }, [firestore, filters.dateRange, filters.choirId, authLoading]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    const firstSession = useMemo(() => sessions?.[0], [sessions]);
+    const firstSession = useMemo(() => {
+        if (!sessions || sessions.length === 0) return null;
+        const sorted = [...sessions].sort((a, b) => a.date.toMillis() - b.date.toMillis());
+        return sorted[0];
+    }, [sessions]);
 
     // 2. Get the admission numbers from the first session's attendance map
     const studentAdmissionNumbers = useMemo(() => {

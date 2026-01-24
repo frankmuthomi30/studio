@@ -14,7 +14,7 @@ import { Loader2, Search, Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState, useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { Student, Choir, ChoirMember, AttendanceSession } from '@/lib/types';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -30,7 +30,7 @@ export default function IndividualReportPage() {
     
     // 1. Fetch all choirs
     const choirsQuery = useMemoFirebase(() => 
-        !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null
+        !authLoading && firestore ? query(collection(firestore, 'choirs'), where('name', '!=', '')) : null
     , [firestore, authLoading]);
     const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(choirsQuery);
     
@@ -51,8 +51,7 @@ export default function IndividualReportPage() {
         !authLoading && firestore && studentToReport && selectedChoirId 
         ? query(
             collection(firestore, 'choir_attendance'), 
-            where('choirId', '==', selectedChoirId),
-            orderBy('date', 'asc')
+            where('choirId', '==', selectedChoirId)
           ) 
         : null
     , [firestore, studentToReport, selectedChoirId, authLoading]);
@@ -236,7 +235,8 @@ export default function IndividualReportPage() {
     // Filter sessions to only those relevant to the specific student for the report component.
     const studentAttendanceSessions = useMemo(() => {
         if (!attendanceSessions || !studentToReport) return [];
-        return attendanceSessions.filter(session => session.attendance_map.hasOwnProperty(studentToReport.admission_number));
+        const sortedSessions = [...attendanceSessions].sort((a, b) => a.date.toMillis() - b.date.toMillis());
+        return sortedSessions.filter(session => session.attendance_map.hasOwnProperty(studentToReport.admission_number));
     }, [attendanceSessions, studentToReport]);
 
     return (
