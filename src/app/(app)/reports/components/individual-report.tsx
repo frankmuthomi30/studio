@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import type { Student, AttendanceSession } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
@@ -18,6 +19,11 @@ type IndividualReportProps = {
 export default function IndividualReport({ student }: IndividualReportProps) {
   const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
   const firestore = useFirestore();
+  const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setGeneratedDate(new Date());
+  }, []);
 
   const attendanceQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'choir_attendance'), orderBy('date', 'asc')) : null
@@ -146,7 +152,7 @@ export default function IndividualReport({ student }: IndividualReportProps) {
                 <p className="font-semibold">Date</p>
             </div>
         </div>
-        <p className="text-center text-xs">Generated on {format(new Date(), 'PPp')}</p>
+        <p className="text-center text-xs">{generatedDate ? `Generated on ${format(generatedDate, 'PPp')}` : ''}</p>
       </footer>
     </div>
   );

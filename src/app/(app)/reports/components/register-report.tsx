@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
@@ -19,6 +20,11 @@ type RegisterReportProps = {
 export default function RegisterReport({ filters }: RegisterReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const firestore = useFirestore();
+    const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setGeneratedDate(new Date());
+    }, []);
 
     // 1. Query for the sessions in the given date range
     const sessionsQuery = useMemoFirebase(() => {
@@ -174,7 +180,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                 <p>Prepared by: Mr. Muthomi (Choir Director)</p>
                 <p>Page 1 of 1</p>
             </div>
-            <p className="text-center text-xs mt-4">Generated on {format(new Date(), 'PPp')}</p>
+            <p className="text-center text-xs mt-4">{generatedDate ? `Generated on ${format(generatedDate, 'PPp')}` : ''}</p>
         </footer>
     </div>
   );

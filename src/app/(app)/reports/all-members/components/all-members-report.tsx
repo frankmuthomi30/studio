@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import type { StudentWithChoirStatus } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,11 @@ type AllMembersReportProps = {
 
 export default function AllMembersReport({ students }: AllMembersReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
+    const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setGeneratedDate(new Date());
+    }, []);
     
     const sortedStudents = students.sort((a, b) => {
         // Sort by class first, then by name
@@ -79,7 +85,7 @@ export default function AllMembersReport({ students }: AllMembersReportProps) {
                 <p>Prepared by: Mr. Muthomi (Choir Director)</p>
                 <p className="font-bold">Total Members: {students.length}</p>
             </div>
-            <p className="text-center text-xs mt-4">Generated on {format(new Date(), 'PPp')}</p>
+            <p className="text-center text-xs mt-4">{generatedDate ? `Generated on ${format(generatedDate, 'PPp')}` : ''}</p>
         </footer>
     </div>
   );
