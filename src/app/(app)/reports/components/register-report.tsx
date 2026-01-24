@@ -14,6 +14,8 @@ import type { DateRange } from 'react-day-picker';
 type RegisterReportProps = {
     filters: {
         dateRange?: DateRange;
+        choirId?: string;
+        choirName?: string;
     }
 }
 
@@ -23,12 +25,13 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
+        // This effect runs only on the client, preventing hydration mismatch
         setGeneratedDate(new Date());
     }, []);
 
-    // 1. Query for the sessions in the given date range
+    // 1. Query for the sessions in the given date range for the specified choir
     const sessionsQuery = useMemoFirebase(() => {
-        if (!firestore || !filters.dateRange?.from) return null;
+        if (!firestore || !filters.dateRange?.from || !filters.choirId) return null;
 
         const fromDate = filters.dateRange.from;
         const toDate = filters.dateRange.to || filters.dateRange.from;
@@ -38,11 +41,12 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
         return query(
             collection(firestore, 'choir_attendance'),
+            where('choirId', '==', filters.choirId),
             where('date', '>=', fromDate),
             where('date', '<=', endOfDay),
             orderBy('date', 'asc')
         );
-    }, [firestore, filters.dateRange]);
+    }, [firestore, filters.dateRange, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
     const firstSession = useMemo(() => sessions?.[0], [sessions]);
@@ -56,7 +60,8 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     // 3. Query for the student details based on the admission numbers from the session
     const studentQuery = useMemoFirebase(() => {
         if (!firestore || studentAdmissionNumbers.length === 0) return null;
-        return query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers));
+        // Batching reads for up to 30 students at a time.
+        return query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers.slice(0, 30)));
     }, [firestore, studentAdmissionNumbers]);
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
 
@@ -79,10 +84,10 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         };
     }, [students, firstSession]);
 
-    if (!filters.dateRange?.from) {
+    if (!filters.dateRange?.from || !filters.choirId) {
         return (
             <div className="text-center p-8 text-muted-foreground border rounded-lg">
-                <p>Select a date range and click "Generate Report" to see the attendance register.</p>
+                <p>Select a choir and date range, then click "Generate Report" to see the attendance register.</p>
             </div>
         );
     }
@@ -125,7 +130,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                         <h3 className="font-headline text-xl text-gray-700">Full Choir Attendance Register</h3>
                     </div>
                 </header>
-                <p className="text-muted-foreground text-center p-4">No attendance sessions found for the selected date range.</p>
+                <p className="text-muted-foreground text-center p-4">No attendance sessions found for '{filters.choirName}' in the selected date range.</p>
             </div>
         );
     }
@@ -159,7 +164,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         </header>
         <div className="text-center my-4">
             <h3 className="font-headline text-xl font-semibold text-gray-700">
-                {reportData.session.practice_type} on {format(reportData.session.date.toDate(), 'EEEE, MMMM d, yyyy')}
+                {filters.choirName} - {reportData.session.practice_type} on {format(reportData.session.date.toDate(), 'EEEE, MMMM d, yyyy')}
             </h3>
             <p className="text-sm text-gray-500">(Showing first session in selected date range)</p>
         </div>

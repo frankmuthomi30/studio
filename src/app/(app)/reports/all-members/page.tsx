@@ -3,18 +3,29 @@
 import PageHeader from '@/components/page-header';
 import AllMembersReport from './components/all-members-report';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Search } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { Student, ChoirMember, StudentWithChoirStatus } from '@/lib/types';
-import { useMemo } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
+import type { Student, Choir, ChoirMember, StudentWithChoirStatus } from '@/lib/types';
+import { useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+
 
 export default function AllMembersReportPage() {
     const firestore = useFirestore();
+    const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
+    const [choirToReport, setChoirToReport] = useState<Choir | null>(null);
+
+    // 1. Fetch all choirs
+    const choirsQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null
+    , [firestore]);
+    const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(choirsQuery);
 
     const studentsQuery = useMemoFirebase(() => 
         firestore ? collection(firestore, 'students') : null
@@ -22,8 +33,8 @@ export default function AllMembersReportPage() {
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentsQuery);
 
     const choirMembersQuery = useMemoFirebase(() =>
-        firestore ? collection(firestore, 'choir_members') : null
-    , [firestore]);
+        firestore && choirToReport ? collection(firestore, 'choirs', choirToReport.id, 'members') : null
+    , [firestore, choirToReport]);
     const { data: choirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(choirMembersQuery);
 
     const allChoirStudents: StudentWithChoirStatus[] = useMemo(() => {
@@ -41,8 +52,16 @@ export default function AllMembersReportPage() {
                 };
             });
     }, [students, choirMembers]);
+    
+    const handleGenerateReport = () => {
+        const choir = choirs?.find(c => c.id === selectedChoirId);
+        if (choir) {
+            setChoirToReport(choir);
+        }
+    };
 
     const handleExportPdf = () => {
+        if (!choirToReport) return;
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     
@@ -70,7 +89,7 @@ export default function AllMembersReportPage() {
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text("All Choir Members Report", pageWidth - margin, cursorY + 15, { align: 'right' });
+        doc.text(`${choirToReport.name} - All Members`, pageWidth - margin, cursorY + 15, { align: 'right' });
     
         cursorY += 30;
     
@@ -116,31 +135,65 @@ export default function AllMembersReportPage() {
         doc.setTextColor(150);
         doc.text(generatedOnText, pageWidth / 2, footerY + 8, { align: 'center' });
     
-        doc.save(`Gatura-Girls-All-Members-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.save(`Gatura-Girls-${choirToReport.name}-All-Members-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
-    const isLoading = studentsLoading || membersLoading;
+    const isLoading = studentsLoading || choirsLoading;
+    const isGenerating = !!choirToReport && membersLoading;
 
     return (
         <>
             <PageHeader
                 title="All Choir Members Report"
-                subtitle="A complete list of all students registered in the choir, past and present."
-                actions={
-                    <Button onClick={handleExportPdf} disabled={isLoading || allChoirStudents.length === 0}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export PDF
-                    </Button>
-                }
+                subtitle="A list of all students registered in a specific choir."
             />
-            <div className="container mx-auto p-4 md:p-8">
+            <div className="container mx-auto p-4 md:p-8 space-y-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Select Choir</CardTitle>
+                        <CardDescription>Choose a choir to see a list of all its members, past and present.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? <Loader2 className="animate-spin" /> : (
+                            <div className="flex flex-wrap items-center gap-4">
+                                <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined}>
+                                    <SelectTrigger className="w-full sm:w-auto sm:min-w-[300px]">
+                                        <SelectValue placeholder="Select a choir..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {choirs?.map(choir => (
+                                            <SelectItem key={choir.id} value={choir.id}>
+                                                {choir.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={handleGenerateReport} disabled={!selectedChoirId || isGenerating}>
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                    {isGenerating ? 'Loading...' : 'Generate Report'}
+                                </Button>
+                                <Button onClick={handleExportPdf} variant="outline" disabled={!choirToReport || isGenerating}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export PDF
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 <div className="print-container">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                        </div>
+                    {choirToReport ? (
+                        isLoading || isGenerating ? (
+                            <div className="flex justify-center items-center h-64">
+                                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            </div>
+                        ) : (
+                            <AllMembersReport students={allChoirStudents} choirName={choirToReport.name} />
+                        )
                     ) : (
-                        <AllMembersReport students={allChoirStudents} />
+                        <div className="text-center p-8 text-muted-foreground border rounded-lg">
+                           <p>Select a choir and click "Generate Report" to see a list of all its members.</p>
+                        </div>
                     )}
                 </div>
             </div>

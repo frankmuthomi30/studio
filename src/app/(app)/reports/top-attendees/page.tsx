@@ -3,15 +3,17 @@
 import PageHeader from '@/components/page-header';
 import TopAttendeesReport from './components/top-attendees-report';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Search } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import type { Student, ChoirMember, AttendanceSession } from '@/lib/types';
-import { useMemo } from 'react';
+import { collection, query, orderBy, where } from 'firebase/firestore';
+import type { Student, Choir, ChoirMember, AttendanceSession } from '@/lib/types';
+import { useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 export type TopAttendee = Student & {
     present: number;
@@ -21,15 +23,21 @@ export type TopAttendee = Student & {
 
 export default function TopAttendeesReportPage() {
     const firestore = useFirestore();
+    const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
+    const [choirToReport, setChoirToReport] = useState<Choir | null>(null);
+
+    const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(
+        useMemoFirebase(() => firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, [firestore])
+    );
 
     const { data: attendanceSessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(
-        useMemoFirebase(() => firestore ? query(collection(firestore, 'choir_attendance')) : null, [firestore])
+        useMemoFirebase(() => firestore && choirToReport ? query(collection(firestore, 'choir_attendance'), where('choirId', '==', choirToReport.id)) : null, [firestore, choirToReport])
     );
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(
         useMemoFirebase(() => firestore ? collection(firestore, 'students') : null, [firestore])
     );
     const { data: choirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(
-        useMemoFirebase(() => firestore ? query(collection(firestore, 'choir_members')) : null, [firestore])
+        useMemoFirebase(() => firestore && choirToReport ? collection(firestore, 'choirs', choirToReport.id, 'members') : null, [firestore, choirToReport])
     );
 
     const topAttendeesData: TopAttendee[] = useMemo(() => {
@@ -40,18 +48,13 @@ export default function TopAttendeesReportPage() {
 
         const attendanceCounts: Record<string, { present: number; total: number }> = {};
 
-        // Initialize counts for all choir members to ensure they are included even with 0 attendance
         choirMemberAdmissionNumbers.forEach(admNo => {
             attendanceCounts[admNo] = { present: 0, total: 0 };
         });
 
-        // Process each attendance session
         attendanceSessions.forEach(session => {
-            // Iterate over all known choir members for this session
             Object.keys(session.attendance_map).forEach(admNo => {
-                // Ensure we only count for students who are currently (or were) in the choir
                 if (choirMemberAdmissionNumbers.has(admNo)) {
-                    // This check is slightly redundant due to pre-initialization but is safe
                     if (!attendanceCounts[admNo]) {
                          attendanceCounts[admNo] = { present: 0, total: 0 };
                     }
@@ -76,9 +79,8 @@ export default function TopAttendeesReportPage() {
                     attendance_rate: attendanceRate
                 } as TopAttendee;
             })
-            .filter(item => item.first_name) // Filter out any choir members for whom we don't have student details
+            .filter(item => item.first_name)
             .sort((a, b) => {
-                // Sort by present count desc, then by attendance rate desc, then by name
                 if (b.present !== a.present) return b.present - a.present;
                 if (b.attendance_rate !== a.attendance_rate) return b.attendance_rate - a.attendance_rate;
                 return (a.first_name || '').localeCompare(b.first_name || '');
@@ -88,7 +90,15 @@ export default function TopAttendeesReportPage() {
 
     }, [attendanceSessions, students, choirMembers]);
 
+    const handleGenerateReport = () => {
+        const choir = choirs?.find(c => c.id === selectedChoirId);
+        if (choir) {
+            setChoirToReport(choir);
+        }
+    };
+
     const handleExportPdf = () => {
+        if (!choirToReport) return;
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     
@@ -114,7 +124,7 @@ export default function TopAttendeesReportPage() {
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text("Top Choir Attendees Report", pageWidth - margin, cursorY + 15, { align: 'right' });
+        doc.text(`Top Attendees - ${choirToReport.name}`, pageWidth - margin, cursorY + 15, { align: 'right' });
     
         cursorY += 30;
     
@@ -155,31 +165,65 @@ export default function TopAttendeesReportPage() {
         doc.setTextColor(150);
         doc.text(generatedOnText, pageWidth / 2, footerY + 8, { align: 'center' });
     
-        doc.save(`Gatura-Girls-Top-Attendees-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.save(`Gatura-Girls-Top-Attendees-${choirToReport.name}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
-    const isLoading = studentsLoading || membersLoading || sessionsLoading;
+    const isLoading = choirsLoading;
+    const isGenerating = !!choirToReport && (sessionsLoading || studentsLoading || membersLoading);
 
     return (
         <>
             <PageHeader
                 title="Top Attendees Report"
                 subtitle="A ranked list of choir members based on their attendance."
-                actions={
-                    <Button onClick={handleExportPdf} disabled={isLoading || topAttendeesData.length === 0}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export PDF
-                    </Button>
-                }
             />
-            <div className="container mx-auto p-4 md:p-8">
+            <div className="container mx-auto p-4 md:p-8 space-y-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Select Choir</CardTitle>
+                        <CardDescription>Choose a choir to see its top attendees.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? <Loader2 className="animate-spin" /> : (
+                            <div className="flex flex-wrap items-center gap-4">
+                                <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined}>
+                                    <SelectTrigger className="w-full sm:w-auto sm:min-w-[300px]">
+                                        <SelectValue placeholder="Select a choir..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {choirs?.map(choir => (
+                                            <SelectItem key={choir.id} value={choir.id}>
+                                                {choir.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={handleGenerateReport} disabled={!selectedChoirId || isGenerating}>
+                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                    {isGenerating ? 'Loading...' : 'Generate Report'}
+                                </Button>
+                                <Button onClick={handleExportPdf} variant="outline" disabled={!choirToReport || isGenerating || topAttendeesData.length === 0}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export PDF
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 <div className="print-container">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                        </div>
+                    {choirToReport ? (
+                        isGenerating ? (
+                            <div className="flex justify-center items-center h-64">
+                                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                            </div>
+                        ) : (
+                            <TopAttendeesReport attendees={topAttendeesData} choirName={choirToReport.name}/>
+                        )
                     ) : (
-                        <TopAttendeesReport attendees={topAttendeesData} />
+                        <div className="text-center p-8 text-muted-foreground border rounded-lg">
+                           <p>Select a choir and click "Generate Report" to see its top attendees.</p>
+                        </div>
                     )}
                 </div>
             </div>

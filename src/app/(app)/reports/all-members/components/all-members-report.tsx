@@ -9,13 +9,15 @@ import { format } from 'date-fns';
 
 type AllMembersReportProps = {
   students: StudentWithChoirStatus[];
+  choirName: string;
 };
 
-export default function AllMembersReport({ students }: AllMembersReportProps) {
+export default function AllMembersReport({ students, choirName }: AllMembersReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
+        // This effect runs only on the client, preventing hydration mismatch
         setGeneratedDate(new Date());
     }, []);
     
@@ -52,7 +54,7 @@ export default function AllMembersReport({ students }: AllMembersReportProps) {
                 </div>
             </div>
             <div className="text-right">
-                <h3 className="font-headline text-xl text-gray-700">All Choir Members</h3>
+                <h3 className="font-headline text-xl text-gray-700">{choirName} - All Members</h3>
             </div>
         </header>
 
@@ -81,7 +83,7 @@ export default function AllMembersReport({ students }: AllMembersReportProps) {
                     )) : (
                         <TableRow>
                             <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                No choir members found in the database.
+                                No choir members found for this choir.
                             </TableCell>
                         </TableRow>
                     )}

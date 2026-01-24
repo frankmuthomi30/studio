@@ -9,13 +9,15 @@ import { Badge } from '@/components/ui/badge';
 
 type TopAttendeesReportProps = {
   attendees: TopAttendee[];
+  choirName: string;
 };
 
-export default function TopAttendeesReport({ attendees }: TopAttendeesReportProps) {
+export default function TopAttendeesReport({ attendees, choirName }: TopAttendeesReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
+        // This effect runs only on the client, preventing hydration mismatch
         setGeneratedDate(new Date());
     }, []);
 
@@ -43,7 +45,7 @@ export default function TopAttendeesReport({ attendees }: TopAttendeesReportProp
                 </div>
             </div>
             <div className="text-right">
-                <h3 className="font-headline text-xl text-gray-700">Top Choir Attendees</h3>
+                <h3 className="font-headline text-xl text-gray-700">Top Attendees - {choirName}</h3>
             </div>
         </header>
 
@@ -78,7 +80,7 @@ export default function TopAttendeesReport({ attendees }: TopAttendeesReportProp
                     )) : (
                         <TableRow>
                             <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                                No attendance data available to generate rankings.
+                                No attendance data available to generate rankings for this choir.
                             </TableCell>
                         </TableRow>
                     )}
