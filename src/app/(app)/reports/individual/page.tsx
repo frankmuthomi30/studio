@@ -14,7 +14,7 @@ import { Loader2, Search, Download } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState, useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import type { Student, Choir, ChoirMember, AttendanceSession } from '@/lib/types';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -30,7 +30,7 @@ export default function IndividualReportPage() {
     
     // 1. Fetch all choirs
     const choirsQuery = useMemoFirebase(() => 
-        !authLoading && firestore ? query(collection(firestore, 'choirs'), where('name', '!=', '')) : null
+        !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name')) : null
     , [firestore, authLoading]);
     const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(choirsQuery);
     
@@ -56,6 +56,11 @@ export default function IndividualReportPage() {
         : null
     , [firestore, studentToReport, selectedChoirId, authLoading]);
     const { data: attendanceSessions, isLoading: attendanceLoading } = useCollection<AttendanceSession>(attendanceQuery);
+    
+    const selectedChoir = useMemo(() => {
+        if (!choirs || !selectedChoirId) return null;
+        return choirs.find(c => c.id === selectedChoirId);
+    }, [choirs, selectedChoirId]);
 
     // Memoize the list of students who are members of the selected choir
     const choirStudents = useMemo(() => {
@@ -81,7 +86,7 @@ export default function IndividualReportPage() {
     }
 
     const handleExportPdf = () => {
-        if (!studentToReport || !selectedChoirId) return;
+        if (!studentToReport || !selectedChoir) return;
 
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
@@ -121,7 +126,11 @@ export default function IndividualReportPage() {
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text("Choir Attendance Report", pageWidth - margin, cursorY + 15, { align: 'right' });
+        doc.text(selectedChoir.name, pageWidth - margin, cursorY + 15, { align: 'right' });
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Individual Attendance Report", pageWidth - margin, cursorY + 20, { align: 'right' });
+        doc.setTextColor(0);
     
         cursorY += 35;
 
@@ -298,9 +307,10 @@ export default function IndividualReportPage() {
                 </Card>
 
                 <div className="print-container">
-                    {studentToReport ? (
+                    {studentToReport && selectedChoir ? (
                         <IndividualReport 
                             student={studentToReport} 
+                            choirName={selectedChoir.name}
                             attendanceSessions={studentAttendanceSessions}
                             isLoading={attendanceLoading}
                         />

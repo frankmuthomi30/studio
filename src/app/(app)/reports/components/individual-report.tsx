@@ -12,11 +12,12 @@ import { Loader2 } from 'lucide-react';
 
 type IndividualReportProps = {
   student: Student;
+  choirName: string;
   attendanceSessions: AttendanceSession[] | null;
   isLoading: boolean;
 };
 
-export default function IndividualReport({ student, attendanceSessions, isLoading }: IndividualReportProps) {
+export default function IndividualReport({ student, choirName, attendanceSessions, isLoading }: IndividualReportProps) {
   const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
   const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
@@ -68,7 +69,8 @@ export default function IndividualReport({ student, attendanceSessions, isLoadin
               </div>
           </div>
           <div className="text-right">
-              <h3 className="font-headline text-xl text-gray-700">Choir Attendance Report</h3>
+              <h3 className="font-headline text-xl text-gray-700">{choirName}</h3>
+              <p className="text-sm text-muted-foreground">Individual Attendance Report</p>
           </div>
       </header>
 
