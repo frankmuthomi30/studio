@@ -6,32 +6,35 @@ import { Users, UserCheck, Percent, CalendarClock, ListChecks, Loader2 } from 'l
 import DashboardCard from './components/dashboard-card';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import type { AttendanceSession, ChoirMember, Student } from '@/lib/types';
 import DeleteSessionButton from './components/delete-session-button';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { isUserLoading: authLoading } = useUser();
 
   const studentsQuery = useMemoFirebase(() => 
-    firestore ? collection(firestore, 'students') : null
-  , [firestore]);
+    !authLoading && firestore ? collection(firestore, 'students') : null
+  , [firestore, authLoading]);
   const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentsQuery);
 
   const choirMembersQuery = useMemoFirebase(() =>
-    firestore ? collection(firestore, 'choir_members') : null
-  , [firestore]);
+    !authLoading && firestore ? collection(firestore, 'choir_members') : null
+  , [firestore, authLoading]);
   const { data: choirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(choirMembersQuery);
   
   const sessionsQuery = useMemoFirebase(() =>
-    firestore
+    !authLoading && firestore
       ? query(collection(firestore, 'choir_attendance'), orderBy('date', 'desc'), limit(5))
       : null
-  , [firestore]);
+  , [firestore, authLoading]);
   const { data: attendanceSessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
   
-  if (studentsLoading || membersLoading || sessionsLoading) {
+  const isLoading = authLoading || studentsLoading || membersLoading || sessionsLoading;
+
+  if (isLoading) {
       return (
         <>
           <PageHeader

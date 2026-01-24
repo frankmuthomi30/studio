@@ -2,7 +2,7 @@
 
 import PageHeader from '@/components/page-header';
 import StudentUploadClient from './components/student-upload-client';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Student } from '@/lib/types';
 import { Loader2, Database } from 'lucide-react';
@@ -12,9 +12,10 @@ import DeleteClassButton from './components/delete-class-button';
 
 export default function StudentUploadPage() {
   const firestore = useFirestore();
+  const { isUserLoading: authLoading } = useUser();
   const studentsQuery = useMemoFirebase(() =>
-    firestore ? collection(firestore, 'students') : null
-  , [firestore]);
+    !authLoading && firestore ? collection(firestore, 'students') : null
+  , [firestore, authLoading]);
   const { data: students, isLoading } = useCollection<Student>(studentsQuery);
 
   const stats = useMemo(() => {
@@ -32,6 +33,8 @@ export default function StudentUploadPage() {
         byClass,
     };
   }, [students]);
+  
+  const effectiveIsLoading = isLoading || authLoading;
 
   return (
     <>
@@ -56,7 +59,7 @@ export default function StudentUploadPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {effectiveIsLoading ? (
                 <div className="flex justify-center items-center p-4">
                   <Loader2 className="animate-spin text-primary" />
                 </div>

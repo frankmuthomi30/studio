@@ -1,6 +1,6 @@
 'use client';
 import PageHeader from '@/components/page-header';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, orderBy, query } from 'firebase/firestore';
 import { Loader2, Music, Plus } from 'lucide-react';
 import type { Choir } from '@/lib/types';
@@ -13,12 +13,13 @@ import ChoirFormDialog from './components/choir-form-dialog';
 
 export default function ChoirListPage() {
   const firestore = useFirestore();
+  const { isUserLoading: authLoading } = useUser();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedChoir, setSelectedChoir] = useState<Choir | null>(null);
 
   const choirsQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null
-  , [firestore]);
+    !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null
+  , [firestore, authLoading]);
   const { data: choirs, isLoading } = useCollection<Choir>(choirsQuery);
 
   const handleEdit = (choir: Choir) => {
@@ -31,6 +32,8 @@ export default function ChoirListPage() {
     setDialogOpen(true);
   }
   
+  const effectiveIsLoading = isLoading || authLoading;
+
   return (
     <>
       <PageHeader
@@ -44,7 +47,7 @@ export default function ChoirListPage() {
         }
       />
       <div className="container mx-auto p-4 md:p-8">
-        {isLoading ? (
+        {effectiveIsLoading ? (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>

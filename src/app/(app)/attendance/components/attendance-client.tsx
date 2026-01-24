@@ -12,7 +12,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AttendanceSheet from './attendance-sheet';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -31,24 +31,25 @@ export default function AttendanceClient() {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { isUserLoading: authLoading } = useUser();
 
   const activeMembersQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'choir_members'), where('status', '==', 'active')) : null
-  , [firestore]);
+    !authLoading && firestore ? query(collection(firestore, 'choir_members'), where('status', '==', 'active')) : null
+  , [firestore, authLoading]);
   const { data: activeChoirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(activeMembersQuery);
   
   const studentQuery = useMemoFirebase(() =>
-    firestore && activeChoirMembers && activeChoirMembers.length > 0 ? 
+    !authLoading && firestore && activeChoirMembers && activeChoirMembers.length > 0 ? 
     query(collection(firestore, 'students'), where('admission_number', 'in', activeChoirMembers.map(m => m.admission_number))) 
     : null
-  , [firestore, activeChoirMembers]);
+  , [firestore, activeChoirMembers, authLoading]);
   const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
 
   const sessionsQuery = useMemoFirebase(() =>
-    firestore
+    !authLoading && firestore
       ? query(collection(firestore, 'choir_attendance'), orderBy('date', 'desc'))
       : null
-  , [firestore]);
+  , [firestore, authLoading]);
   const { data: attendanceSessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
   const activeStudents = useMemo(() => students || [], [students]);
@@ -115,7 +116,7 @@ export default function AttendanceClient() {
     setIsSaving(false);
   };
   
-  const isLoading = isCreating || isSaving || membersLoading || studentsLoading;
+  const isLoading = authLoading || isCreating || isSaving || membersLoading || studentsLoading;
 
   if (sessionToEdit) {
     return (

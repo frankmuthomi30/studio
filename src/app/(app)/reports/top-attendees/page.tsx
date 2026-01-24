@@ -4,7 +4,7 @@ import PageHeader from '@/components/page-header';
 import TopAttendeesReport from './components/top-attendees-report';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Search } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, where } from 'firebase/firestore';
 import type { Student, Choir, ChoirMember, AttendanceSession } from '@/lib/types';
 import { useMemo, useState } from 'react';
@@ -23,21 +23,22 @@ export type TopAttendee = Student & {
 
 export default function TopAttendeesReportPage() {
     const firestore = useFirestore();
+    const { isUserLoading: authLoading } = useUser();
     const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
     const [choirToReport, setChoirToReport] = useState<Choir | null>(null);
 
     const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(
-        useMemoFirebase(() => firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, [firestore])
+        useMemoFirebase(() => !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, [firestore, authLoading])
     );
 
     const { data: attendanceSessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(
-        useMemoFirebase(() => firestore && choirToReport ? query(collection(firestore, 'choir_attendance'), where('choirId', '==', choirToReport.id)) : null, [firestore, choirToReport])
+        useMemoFirebase(() => !authLoading && firestore && choirToReport ? query(collection(firestore, 'choir_attendance'), where('choirId', '==', choirToReport.id)) : null, [firestore, choirToReport, authLoading])
     );
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(
-        useMemoFirebase(() => firestore ? collection(firestore, 'students') : null, [firestore])
+        useMemoFirebase(() => !authLoading && firestore ? collection(firestore, 'students') : null, [firestore, authLoading])
     );
     const { data: choirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(
-        useMemoFirebase(() => firestore && choirToReport ? collection(firestore, 'choirs', choirToReport.id, 'members') : null, [firestore, choirToReport])
+        useMemoFirebase(() => !authLoading && firestore && choirToReport ? collection(firestore, 'choirs', choirToReport.id, 'members') : null, [firestore, choirToReport, authLoading])
     );
 
     const topAttendeesData: TopAttendee[] = useMemo(() => {
@@ -168,7 +169,7 @@ export default function TopAttendeesReportPage() {
         doc.save(`Gatura-Girls-Top-Attendees-${choirToReport.name}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
-    const isLoading = choirsLoading;
+    const isLoading = authLoading || choirsLoading;
     const isGenerating = !!choirToReport && (sessionsLoading || studentsLoading || membersLoading);
 
     return (

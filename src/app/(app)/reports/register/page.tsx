@@ -14,19 +14,20 @@ import React, { useState } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { Choir } from '@/lib/types';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function RegisterReportPage() {
     const firestore = useFirestore();
+    const { isUserLoading: authLoading } = useUser();
     const [date, setDate] = useState<DateRange | undefined>()
     const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
     const [reportFilters, setReportFilters] = useState<{dateRange?: DateRange, choirId?: string, choirName?: string}>({});
 
     const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(
-        useMemoFirebase(() => firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, [firestore])
+        useMemoFirebase(() => !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, [firestore, authLoading])
     );
 
     const handleGenerate = () => {
@@ -136,6 +137,8 @@ export default function RegisterReportPage() {
         doc.save(`Gatura-Girls-Choir-Register-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
+    const isLoading = choirsLoading || authLoading;
+
   return (
     <>
       <PageHeader
@@ -149,7 +152,7 @@ export default function RegisterReportPage() {
                 <CardDescription>Select filters to generate the register. The report will be based on the first session found in the selected range.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-end gap-4">
-                {choirsLoading ? <Loader2 className="animate-spin" /> : (
+                {isLoading ? <Loader2 className="animate-spin" /> : (
                     <>
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Choir</label>
