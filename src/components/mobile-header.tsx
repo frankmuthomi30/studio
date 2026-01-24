@@ -13,7 +13,7 @@ import {
   Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Logo from './logo';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +44,7 @@ export function MobileHeader() {
         <SheetContent side="left" className="w-full max-w-xs p-0">
           <div className="flex h-16 items-center border-b px-6">
             <Logo />
+            <SheetTitle className="sr-only">Main Menu</SheetTitle>
           </div>
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => (
