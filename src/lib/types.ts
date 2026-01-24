@@ -15,9 +15,20 @@ export type Student = {
   uploaded_by?: string;
 };
 
+export type Choir = {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  created_at: Timestamp;
+  created_by?: string;
+};
+
 export type ChoirMember = {
-  id?: string; // Firestore document ID, which is student admission_number
+  id: string; // Firestore document ID, which is student admission_number
   admission_number: string;
+  first_name: string;
+  last_name: string;
   class: string;
   status: 'active' | 'inactive';
   date_joined: Timestamp;
@@ -26,6 +37,8 @@ export type ChoirMember = {
 
 export type AttendanceSession = {
   id: string; // e.g., 2026-02-01_evening
+  choirId: string;
+  choirName: string; // Denormalized for display
   date: Timestamp;
   practice_type: string;
   class_filter?: string;
@@ -35,6 +48,7 @@ export type AttendanceSession = {
   locked: boolean;
 };
 
+// Represents a student with their membership status for a *specific* choir
 export type StudentWithChoirStatus = Student & {
-  choirMember?: ChoirMember;
+  choirMember?: Omit<ChoirMember, 'id' | 'admission_number' | 'first_name' | 'last_name' | 'class'>;
 };

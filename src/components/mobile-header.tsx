@@ -11,16 +11,17 @@ import {
   Printer,
   LogOut,
   Menu,
+  Music,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import Logo from './logo';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/upload', icon: Upload, label: 'Student Upload' },
-  { href: '/choir', icon: Users, label: 'Choir Management' },
+  { href: '/choir', icon: Music, label: 'Choirs' },
   { href: '/attendance', icon: ClipboardCheck, label: 'Attendance' },
   { href: '/reports', icon: Printer, label: 'Reports' },
 ];
@@ -45,6 +46,7 @@ export function MobileHeader() {
           <div className="flex h-16 items-center border-b px-6">
             <Logo />
             <SheetTitle className="sr-only">Main Menu</SheetTitle>
+            <SheetDescription className="sr-only">Main navigation menu for the application.</SheetDescription>
           </div>
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => (

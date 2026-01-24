@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Printer,
   LogOut,
+  Music,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -17,7 +18,7 @@ import Logo from './logo';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/upload', icon: Upload, label: 'Student Upload' },
-  { href: '/choir', icon: Users, label: 'Choir Management' },
+  { href: '/choir', icon: Music, label: 'Choirs' },
   { href: '/attendance', icon: ClipboardCheck, label: 'Attendance' },
   { href: '/reports', icon: Printer, label: 'Reports' },
 ];

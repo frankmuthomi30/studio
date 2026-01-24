@@ -1,5 +1,39 @@
 {
   "entities": {
+    "Choir": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Choir",
+      "type": "object",
+      "description": "Represents a choir group in the school.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the choir."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the choir."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of choir (e.g., Main Choir, Junior Choir)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the choir was created."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "User ID of who created the choir."
+        }
+      },
+      "required": [
+        "name",
+        "createdAt",
+        "createdBy"
+      ]
+    },
     "Student": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
@@ -65,18 +99,30 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChoirMember",
       "type": "object",
-      "description": "Represents a student's membership in the choir.",
+      "description": "Represents a student's membership within a specific choir. This is a sub-collection of a Choir.",
       "properties": {
         "admissionNumber": {
           "type": "string",
-          "description": "Reference to Student. Unique identifier for the choir member. (Primary Key, Relationship: Student 1:1 ChoirMember)"
+          "description": "Student's admission number. (Document ID)"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Denormalized first name for easy display."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Denormalized last name for easy display."
         },
         "class": {
           "type": "string",
-          "description": "The class or grade of the choir member."
+          "description": "Denormalized class for easy display."
         },
         "status": {
           "type": "string",
+          "enum": [
+            "active",
+            "inactive"
+          ],
           "description": "The status of the choir member (active/inactive)."
         },
         "dateJoined": {
@@ -91,6 +137,8 @@
       },
       "required": [
         "admissionNumber",
+        "firstName",
+        "lastName",
         "class",
         "status",
         "dateJoined",
@@ -106,6 +154,14 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the attendance record. (Primary Key). Format: YYYY-MM-DD_practiceType (e.g., 2026-02-01_evening)"
+        },
+        "choirId": {
+          "type": "string",
+          "description": "The ID of the choir for this attendance session."
+        },
+        "choirName": {
+          "type": "string",
+          "description": "Denormalized name of the choir for easy display."
         },
         "date": {
           "type": "string",
@@ -139,6 +195,7 @@
       },
       "required": [
         "id",
+        "choirId",
         "date",
         "practiceType",
         "attendanceMap",
@@ -156,6 +213,42 @@
   "firestore": {
     "structure": [
       {
+        "path": "/choirs/{choirId}",
+        "definition": {
+          "entityName": "Choir",
+          "schema": {
+            "$ref": "#/backend/entities/Choir"
+          },
+          "description": "Stores choir groups. Document ID is auto-generated.",
+          "params": [
+            {
+              "name": "choirId",
+              "description": "The unique ID for the choir."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/choirs/{choirId}/members/{admissionNumber}",
+        "definition": {
+          "entityName": "ChoirMember",
+          "schema": {
+            "$ref": "#/backend/entities/ChoirMember"
+          },
+          "description": "Stores members of a specific choir.",
+          "params": [
+            {
+              "name": "choirId",
+              "description": "The unique ID for the choir."
+            },
+            {
+              "name": "admissionNumber",
+              "description": "The student's admission number."
+            }
+          ]
+        }
+      },
+      {
         "path": "/students/{admissionNumber}",
         "definition": {
           "entityName": "Student",
@@ -167,22 +260,6 @@
             {
               "name": "admissionNumber",
               "description": "The unique admission number of the student (primary key)."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/choir_members/{admissionNumber}",
-        "definition": {
-          "entityName": "ChoirMember",
-          "schema": {
-            "$ref": "#/backend/entities/ChoirMember"
-          },
-          "description": "Stores choir membership data. Document ID is the admissionNumber, referencing the student.",
-          "params": [
-            {
-              "name": "admissionNumber",
-              "description": "The unique admission number of the choir member (primary key)."
             }
           ]
         }
