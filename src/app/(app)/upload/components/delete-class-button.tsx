@@ -56,7 +56,8 @@ export default function DeleteClassButton({ className, studentCount }: DeleteCla
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete all <strong>{studentCount} student records</strong> for <strong>{className}</strong>.
-            Associated choir membership and attendance data will not be removed but may become orphaned.
+            <br/><br/>
+            This action <strong>will not</strong> delete any choir membership statuses or past attendance records.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
