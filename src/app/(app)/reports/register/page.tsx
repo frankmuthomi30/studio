@@ -29,52 +29,85 @@ export default function RegisterReportPage() {
 
     const handleExportPdf = () => {
         const reportElement = document.getElementById('register-report');
-        const sessionTitle = reportElement?.querySelector('h3')?.innerText;
-        const totalPresentText = reportElement?.querySelector('#total-present')?.innerText;
+        if (!reportFilters.dateRange?.from || !reportElement) return;
 
-        if (!date?.from || !reportElement) return;
-
-        const doc = new jsPDF({ orientation: "portrait" });
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
         const schoolName = "Gatura Girls High School";
         const reportTitleText = "Full Choir Attendance Register";
 
-        // Set font for header
+        const sessionTitle = reportElement?.querySelector('h3')?.innerText;
+        const sessionSubtitle = reportElement?.querySelector('h3 + p')?.innerText;
+        const totalPresentText = reportElement?.querySelector('#total-present')?.innerText;
+
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+
+        // --- PDF Header ---
         doc.setFont('times', 'bold');
         doc.setFontSize(18);
-        doc.text(schoolName, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+        doc.text(schoolName, pageWidth / 2, margin, { align: 'center' });
 
         doc.setFont('times', 'normal');
         doc.setFontSize(14);
-        doc.text(reportTitleText, doc.internal.pageSize.getWidth() / 2, 28, { align: 'center' });
+        doc.text(reportTitleText, pageWidth / 2, margin + 8, { align: 'center' });
 
+        // --- Session Info ---
         if (sessionTitle) {
+            doc.setFont('times', 'bold');
             doc.setFontSize(12);
-            doc.text(sessionTitle, doc.internal.pageSize.getWidth() / 2, 36, { align: 'center' });
+            doc.text(sessionTitle, pageWidth / 2, margin + 20, { align: 'center' });
+        }
+        if (sessionSubtitle) {
+            doc.setFont('times', 'italic');
+            doc.setFontSize(10);
+            doc.text(sessionSubtitle, pageWidth / 2, margin + 25, { align: 'center' });
         }
 
+        // --- Table ---
         (doc as any).autoTable({
             html: '#register-report-table',
-            startY: 45,
+            startY: margin + 32,
             theme: 'grid',
             headStyles: {
                 fillColor: '#107C41',
+                textColor: 255,
                 font: 'times',
                 fontStyle: 'bold'
             },
             styles: {
                 font: 'times',
-                fontStyle: 'normal'
-            }
+                fontStyle: 'normal',
+                cellPadding: 2,
+            },
+            margin: { left: margin, right: margin }
         });
 
-        const finalY = (doc as any).lastAutoTable.finalY || 60; // fallback startY
+        const finalY = (doc as any).lastAutoTable.finalY;
 
+        // --- Summary ---
         if (totalPresentText) {
             doc.setFont('times', 'bold');
             doc.setFontSize(12);
-            doc.text(totalPresentText, 14, finalY + 10);
+            doc.text(totalPresentText, margin, finalY + 10);
         }
+
+        // --- Footer ---
+        const footerY = pageHeight - 20;
+        doc.setFont('times', 'normal');
+        doc.setFontSize(10);
+
+        const preparedBy = "Prepared by: Mr. Muthomi (Choir Director)";
+        doc.text(preparedBy, margin, footerY);
+
+        const pageNumText = `Page 1 of 1`;
+        doc.text(pageNumText, pageWidth - margin, footerY, { align: 'right' });
+
+        const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
+        doc.setFontSize(9);
+        doc.setTextColor(150); // a gray color
+        doc.text(generatedOnText, pageWidth / 2, footerY + 8, { align: 'center' });
 
         doc.save(`Gatura-Girls-Choir-Register-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
