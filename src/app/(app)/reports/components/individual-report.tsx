@@ -8,28 +8,22 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 
 type IndividualReportProps = {
   student: Student;
+  attendanceSessions: AttendanceSession[] | null;
+  isLoading: boolean;
 };
 
-export default function IndividualReport({ student }: IndividualReportProps) {
+export default function IndividualReport({ student, attendanceSessions, isLoading }: IndividualReportProps) {
   const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
-  const firestore = useFirestore();
   const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
   useEffect(() => {
     setGeneratedDate(new Date());
   }, []);
 
-  const attendanceQuery = useMemoFirebase(() => 
-    firestore ? query(collection(firestore, 'choir_attendance'), orderBy('date', 'asc')) : null
-  , [firestore]);
-  const { data: attendanceSessions, isLoading } = useCollection<AttendanceSession>(attendanceQuery);
-  
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-64">
@@ -118,7 +112,7 @@ export default function IndividualReport({ student }: IndividualReportProps) {
       {/* Attendance Table */}
       <section>
         <h3 className="font-headline text-xl font-semibold text-gray-700 mb-4">Attendance Record</h3>
-        <Table>
+        <Table id="individual-report-table">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[150px]">Date</TableHead>
