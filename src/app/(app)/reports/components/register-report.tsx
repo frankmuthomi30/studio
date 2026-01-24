@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import type { AttendanceSession, ChoirMember, Student } from '@/lib/types';
+import type { AttendanceSession, Student } from '@/lib/types';
 import { useMemo } from 'react';
 import type { DateRange } from 'react-day-picker';
 
@@ -20,62 +20,58 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const firestore = useFirestore();
 
-    const activeMembersQuery = useMemoFirebase(() =>
-        firestore ? query(collection(firestore, 'choir_members'), where('status', '==', 'active')) : null
-    , [firestore]);
-    const { data: activeChoirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(activeMembersQuery);
-    
-    const studentQuery = useMemoFirebase(() =>
-        firestore && activeChoirMembers && activeChoirMembers.length > 0 ? 
-        query(collection(firestore, 'students'), where('admission_number', 'in', activeChoirMembers.map(m => m.admission_number))) 
-        : null
-    , [firestore, activeChoirMembers]);
-    const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
-
+    // 1. Query for the sessions in the given date range
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !filters.dateRange?.from) return null;
 
         const fromDate = filters.dateRange.from;
-        // If 'to' is not selected, use the same day as 'from'.
         const toDate = filters.dateRange.to || filters.dateRange.from;
 
-        // Set time to the end of the day for the 'to' date to include all sessions on that day.
         const endOfDay = new Date(toDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const q = query(
+        return query(
             collection(firestore, 'choir_attendance'),
             where('date', '>=', fromDate),
             where('date', '<=', endOfDay),
             orderBy('date', 'asc')
         );
-        
-        return q;
     }, [firestore, filters.dateRange]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
+    const firstSession = useMemo(() => sessions?.[0], [sessions]);
+
+    // 2. Get the admission numbers from the first session's attendance map
+    const studentAdmissionNumbers = useMemo(() => {
+        if (!firstSession) return [];
+        return Object.keys(firstSession.attendance_map);
+    }, [firstSession]);
+
+    // 3. Query for the student details based on the admission numbers from the session
+    const studentQuery = useMemoFirebase(() => {
+        if (!firestore || studentAdmissionNumbers.length === 0) return null;
+        return query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers));
+    }, [firestore, studentAdmissionNumbers]);
+    const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
+
+    // 4. Combine data for the report
     const reportData = useMemo(() => {
-        if (!students || !sessions || sessions.length === 0) {
+        if (!students || !firstSession) {
             return null;
         }
-
-        const session = sessions[0]; // Use the first session in the range
-        const studentDetails = students.sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
-
-        const reportRows = studentDetails.map(student => ({
-            ...student,
-            present: session.attendance_map[student.admission_number] === true,
-        }));
         
-        const presentCount = reportRows.filter(r => r.present).length;
+        const reportRows = students.sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
+
+        const presentCount = Object.values(firstSession.attendance_map).filter(Boolean).length;
+        const totalCount = Object.keys(firstSession.attendance_map).length;
 
         return {
-            session,
+            session: firstSession,
             rows: reportRows,
             presentCount,
-            totalCount: reportRows.length
+            totalCount
         };
-    }, [students, sessions]);
+    }, [students, firstSession]);
 
     if (!filters.dateRange?.from) {
         return (
@@ -85,7 +81,9 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         );
     }
 
-    if (membersLoading || studentsLoading || sessionsLoading) {
+    const isLoading = sessionsLoading || (!!firstSession && studentsLoading);
+
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
