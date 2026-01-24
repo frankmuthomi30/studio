@@ -75,6 +75,31 @@ export default function IndividualReport({ student }: IndividualReportProps) {
 
       <Separator className="my-6" />
 
+      {/* Attendance Summary */}
+      <section>
+        <h3 className="font-headline text-xl font-semibold text-gray-700 mb-4">Attendance Summary</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="text-center">
+                <CardHeader><CardTitle>{totalSessions}</CardTitle></CardHeader>
+                <CardContent><p className="text-sm text-muted-foreground">Total Sessions</p></CardContent>
+            </Card>
+            <Card className="text-center">
+                <CardHeader><CardTitle className="text-primary">{presentCount}</CardTitle></CardHeader>
+                <CardContent><p className="text-sm text-muted-foreground">Sessions Present</p></CardContent>
+            </Card>
+            <Card className="text-center">
+                <CardHeader><CardTitle className="text-destructive">{absentCount}</CardTitle></CardHeader>
+                <CardContent><p className="text-sm text-muted-foreground">Sessions Absent</p></CardContent>
+            </Card>
+            <Card className="text-center">
+                <CardHeader><CardTitle>{attendancePercentage}%</CardTitle></CardHeader>
+                <CardContent><p className="text-sm text-muted-foreground">Attendance Rate</p></CardContent>
+            </Card>
+        </div>
+      </section>
+      
+      <Separator className="my-6" />
+      
       {/* Attendance Table */}
       <section>
         <h3 className="font-headline text-xl font-semibold text-gray-700 mb-4">Attendance Record</h3>
@@ -92,7 +117,7 @@ export default function IndividualReport({ student }: IndividualReportProps) {
                     <TableCell>{format(record.date, 'MMM dd, yyyy')}</TableCell>
                     <TableCell>{record.practice_type}</TableCell>
                     <TableCell className="text-right">
-                        <Badge variant={record.status ? 'default' : 'destructive'} className={record.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                        <Badge variant={record.status ? 'default' : 'destructive'}>
                             {record.status ? 'Present' : 'Absent'}
                         </Badge>
                     </TableCell>
@@ -107,19 +132,6 @@ export default function IndividualReport({ student }: IndividualReportProps) {
             )}
           </TableBody>
         </Table>
-      </section>
-      
-      <Separator className="my-6" />
-
-      {/* Attendance Summary */}
-      <section>
-        <h3 className="font-headline text-xl font-semibold text-gray-700 mb-4">Attendance Summary</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="text-center"><CardHeader><CardTitle>{totalSessions}</CardTitle></CardHeader><CardContent>Total Sessions</CardContent></Card>
-            <Card className="text-center"><CardHeader><CardTitle className="text-green-600">{presentCount}</CardTitle></CardHeader><CardContent>Present</CardContent></Card>
-            <Card className="text-center"><CardHeader><CardTitle className="text-red-600">{absentCount}</CardTitle></CardHeader><CardContent>Absences</CardContent></Card>
-            <Card className="text-center"><CardHeader><CardTitle className="text-blue-600">{attendancePercentage}%</CardTitle></CardHeader><CardContent>Attendance Rate</CardContent></Card>
-        </div>
       </section>
 
       {/* Footer & Signatures */}
