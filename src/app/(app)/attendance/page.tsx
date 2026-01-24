@@ -5,8 +5,8 @@ export default function AttendancePage() {
   return (
     <>
       <PageHeader
-        title="Attendance Recording"
-        subtitle="Create a new session or view past attendance records."
+        title="Attendance Management"
+        subtitle="Create a new session, or click a past session to mark attendance."
       />
       <div className="container mx-auto p-4 md:p-8">
         <AttendanceClient />

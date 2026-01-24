@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { Student } from '@/lib/types';
+import { useState, useMemo, useEffect } from 'react';
+import type { Student, AttendanceSession } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,8 @@ import { format } from 'date-fns';
 import { Check, X, Loader2, UserPlus, UserX } from 'lucide-react';
 
 type AttendanceSheetProps = {
-  session: {
-    date: Date;
-    practice_type: string;
-  };
+  // Accept a session object that has been processed on the client (Date object)
+  session: Omit<AttendanceSession, 'date' | 'recorded_at' | 'uploaded_at'> & { date: Date };
   activeChoirStudents: Student[]; // All active choir members
   onSave: (attendanceMap: Record<string, boolean>) => void;
   onCancel: () => void;
@@ -21,7 +19,14 @@ type AttendanceSheetProps = {
 };
 
 export default function AttendanceSheet({ session, activeChoirStudents, onSave, onCancel, isSaving }: AttendanceSheetProps) {
-  const [presentAdmissionNumbers, setPresentAdmissionNumbers] = useState<Set<string>>(new Set());
+  // Initialize the set of present students from the session's attendance map
+  const [presentAdmissionNumbers, setPresentAdmissionNumbers] = useState<Set<string>>(() => {
+    return new Set(
+        Object.entries(session.attendance_map || {})
+            .filter(([, isPresent]) => isPresent)
+            .map(([admissionNumber]) => admissionNumber)
+    );
+  });
   const [searchTerm, setSearchTerm] = useState('');
   
   const foundStudent = useMemo(() => {
@@ -51,6 +56,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
   };
 
   const handleSave = () => {
+    // Create a map for ALL active students for this session, not just the ones present.
     const attendanceMap = activeChoirStudents.reduce((acc, member) => {
       acc[member.admission_number] = presentAdmissionNumbers.has(member.admission_number);
       return acc;
@@ -58,7 +64,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
     onSave(attendanceMap);
   };
   
-  const presentCount = presentStudents.length;
+  const presentCount = presentAdmissionNumbers.size;
   const totalCount = activeChoirStudents.length;
 
   return (
@@ -130,7 +136,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
                   )) : (
                     <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                            No students marked present yet.
+                            No students marked present yet. Use the search bar to find and mark students.
                         </TableCell>
                     </TableRow>
                   )}
