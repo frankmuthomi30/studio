@@ -7,23 +7,26 @@ import DashboardCard from './components/dashboard-card';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, limit, collectionGroup, where } from 'firebase/firestore';
-import type { AttendanceSession, ChoirMember, Student } from '@/lib/types';
+import { collection, query, orderBy, limit, collectionGroup } from 'firebase/firestore';
+import type { AttendanceSession, ChoirMember } from '@/lib/types';
 import DeleteSessionButton from './components/delete-session-button';
+import { useMemo } from 'react';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { isUserLoading: authLoading } = useUser();
 
-  const studentsQuery = useMemoFirebase(() => 
-    !authLoading && firestore ? collection(firestore, 'students') : null
+  // Fetch all members from all choirs
+  const allChoirMembersQuery = useMemoFirebase(() =>
+    !authLoading && firestore ? collectionGroup(firestore, 'members') : null
   , [firestore, authLoading]);
-  const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentsQuery);
+  const { data: allChoirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(allChoirMembersQuery);
 
-  const activeChoirMembersQuery = useMemoFirebase(() =>
-    !authLoading && firestore ? query(collectionGroup(firestore, 'members'), where('status', '==', 'active')) : null
-  , [firestore, authLoading]);
-  const { data: activeChoirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(activeChoirMembersQuery);
+  // Filter for active members on the client
+  const activeChoirMembers = useMemo(() => {
+    if (!allChoirMembers) return [];
+    return allChoirMembers.filter(member => member.status === 'active');
+  }, [allChoirMembers]);
   
   const sessionsQuery = useMemoFirebase(() =>
     !authLoading && firestore
@@ -32,7 +35,7 @@ export default function DashboardPage() {
   , [firestore, authLoading]);
   const { data: attendanceSessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
   
-  const isLoading = authLoading || studentsLoading || membersLoading || sessionsLoading;
+  const isLoading = authLoading || membersLoading || sessionsLoading;
 
   if (isLoading) {
       return (
@@ -48,8 +51,7 @@ export default function DashboardPage() {
       )
   }
 
-  const activeMembers = activeChoirMembers?.length ?? 0;
-  const totalStudents = students?.length ?? 0;
+  const activeMembers = activeChoirMembers.length;
 
   const lastSession = attendanceSessions?.[0];
   const presentCount = lastSession ? Object.values(lastSession.attendance_map).filter(Boolean).length : 0;
