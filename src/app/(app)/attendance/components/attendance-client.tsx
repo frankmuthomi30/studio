@@ -113,7 +113,7 @@ export default function AttendanceClient() {
     return (
       <AttendanceSheet
         session={session}
-        members={activeStudents}
+        activeChoirStudents={activeStudents}
         onSave={handleSaveAttendance}
         onCancel={() => setSession(null)}
         isSaving={isSaving}

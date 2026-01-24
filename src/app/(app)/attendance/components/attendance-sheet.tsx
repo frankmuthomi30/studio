@@ -14,26 +14,26 @@ type AttendanceSheetProps = {
     date: Date;
     practice_type: string;
   };
-  members: Student[]; // All active choir members
+  activeChoirStudents: Student[]; // All active choir members
   onSave: (attendanceMap: Record<string, boolean>) => void;
   onCancel: () => void;
   isSaving: boolean;
 };
 
-export default function AttendanceSheet({ session, members, onSave, onCancel, isSaving }: AttendanceSheetProps) {
+export default function AttendanceSheet({ session, activeChoirStudents, onSave, onCancel, isSaving }: AttendanceSheetProps) {
   const [presentAdmissionNumbers, setPresentAdmissionNumbers] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   
   const foundStudent = useMemo(() => {
     if (!searchTerm) return null;
-    return members.find(m => m.admission_number.toLowerCase() === searchTerm.toLowerCase());
-  }, [searchTerm, members]);
+    return activeChoirStudents.find(m => m.admission_number.toLowerCase() === searchTerm.toLowerCase());
+  }, [searchTerm, activeChoirStudents]);
 
   const presentStudents = useMemo(() => {
-    return members
+    return activeChoirStudents
       .filter(m => presentAdmissionNumbers.has(m.admission_number))
       .sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
-  }, [presentAdmissionNumbers, members]);
+  }, [presentAdmissionNumbers, activeChoirStudents]);
 
   const handleMarkPresent = () => {
     if (foundStudent && !presentAdmissionNumbers.has(foundStudent.admission_number)) {
@@ -51,7 +51,7 @@ export default function AttendanceSheet({ session, members, onSave, onCancel, is
   };
 
   const handleSave = () => {
-    const attendanceMap = members.reduce((acc, member) => {
+    const attendanceMap = activeChoirStudents.reduce((acc, member) => {
       acc[member.admission_number] = presentAdmissionNumbers.has(member.admission_number);
       return acc;
     }, {} as Record<string, boolean>);
@@ -59,7 +59,7 @@ export default function AttendanceSheet({ session, members, onSave, onCancel, is
   };
   
   const presentCount = presentStudents.length;
-  const totalCount = members.length;
+  const totalCount = activeChoirStudents.length;
 
   return (
     <Card>
