@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import PageHeader from '@/components/page-header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Users, ArrowRight } from 'lucide-react';
+import { User, Users, ArrowRight, BookUser } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const reportTypes = [
@@ -14,8 +14,14 @@ const reportTypes = [
   {
     icon: Users,
     title: 'Full Choir Register',
-    description: 'Generate a register-style report for a date range, class, or term. Exportable to PDF and Excel.',
+    description: 'Generate a register-style report for a date range, based on a single session.',
     href: '/reports/register',
+  },
+  {
+    icon: BookUser,
+    title: 'All Members Report',
+    description: 'View and print a list of all current and past choir members.',
+    href: '/reports/all-members',
   },
 ];
 
@@ -27,7 +33,7 @@ export default function ReportsPage() {
         subtitle="Generate printable and exportable attendance records."
       />
       <div className="container mx-auto p-4 md:p-8">
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {reportTypes.map((report) => (
             <Card key={report.title} className="flex flex-col">
               <CardHeader>
