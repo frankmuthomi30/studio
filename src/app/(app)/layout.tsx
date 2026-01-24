@@ -1,4 +1,5 @@
 import MainSidebar from '@/components/main-sidebar';
+import { MobileHeader } from '@/components/mobile-header';
 
 export default function AppLayout({
   children,
@@ -6,9 +7,12 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen w-full">
       <MainSidebar />
-      <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+      <div className="flex flex-1 flex-col">
+        <MobileHeader />
+        <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+      </div>
     </div>
   );
 }
