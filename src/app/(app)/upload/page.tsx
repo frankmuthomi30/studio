@@ -8,6 +8,7 @@ import type { Student } from '@/lib/types';
 import { Loader2, Database } from 'lucide-react';
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import DeleteClassButton from './components/delete-class-button';
 
 export default function StudentUploadPage() {
   const firestore = useFirestore();
@@ -74,7 +75,10 @@ export default function StudentUploadPage() {
                           .map(([className, count]) => (
                             <div key={className} className="flex justify-between items-center text-sm">
                               <span className="text-muted-foreground">{className}</span>
-                              <span className="font-semibold">{count}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold">{count}</span>
+                                <DeleteClassButton className={className} studentCount={count} />
+                              </div>
                             </div>
                           ))
                       ) : (

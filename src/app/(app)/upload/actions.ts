@@ -2,7 +2,7 @@
 
 import * as xlsx from 'xlsx';
 import { z } from 'zod';
-import { getFirestore, doc, writeBatch, serverTimestamp } from 'firebase/firestore/lite';
+import { getFirestore, doc, writeBatch, serverTimestamp, query, where, getDocs, collection } from 'firebase/firestore/lite';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student } from '@/lib/types';
@@ -115,11 +115,41 @@ export async function commitStudentData(students: ParsedStudentData[]): Promise<
     
     try {
         await batch.commit();
+        revalidatePath('/upload');
         revalidatePath('/choir');
         revalidatePath('/dashboard');
         return { success: true, message: `${students.length} student records have been successfully saved.` };
     } catch (e: any) {
         console.error('Error committing student data:', e);
         return { success: false, message: e.message || 'Failed to save student records.' };
+    }
+}
+
+export async function deleteStudentsByClass(className: string): Promise<{ success: boolean; message: string }> {
+    const db = getDb();
+    
+    try {
+        const studentsQuery = query(collection(db, 'students'), where('class', '==', className));
+        const querySnapshot = await getDocs(studentsQuery);
+
+        if (querySnapshot.empty) {
+            return { success: true, message: `No students found for class '${className}'. Nothing to delete.` };
+        }
+
+        const batch = writeBatch(db);
+        querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        
+        revalidatePath('/upload');
+        revalidatePath('/choir');
+        revalidatePath('/dashboard');
+
+        return { success: true, message: `Successfully deleted ${querySnapshot.size} students from class '${className}'.` };
+    } catch (e: any) {
+        console.error(`Error deleting students for class ${className}:`, e);
+        return { success: false, message: e.message || `Failed to delete students for class '${className}'.` };
     }
 }
