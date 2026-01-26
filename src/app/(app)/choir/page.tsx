@@ -9,6 +9,7 @@ import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import ChoirFormDialog from './components/choir-form-dialog';
+import DeleteChoirButton from './components/delete-choir-button';
 
 
 export default function ChoirListPage() {
@@ -64,8 +65,11 @@ export default function ChoirListPage() {
                         <CardContent className="flex-grow">
                            {/* Placeholder for future stats like member count */}
                         </CardContent>
-                        <CardFooter className="flex justify-between">
-                            <Button variant="ghost" onClick={() => handleEdit(choir)}>Edit</Button>
+                        <CardFooter className="flex justify-between items-center">
+                            <div className="flex items-center gap-1">
+                                <Button variant="ghost" onClick={() => handleEdit(choir)}>Edit</Button>
+                                <DeleteChoirButton choirId={choir.id} choirName={choir.name} />
+                            </div>
                             <Button asChild>
                                 <Link href={`/choir/${choir.id}`}>Manage Members</Link>
                             </Button>
