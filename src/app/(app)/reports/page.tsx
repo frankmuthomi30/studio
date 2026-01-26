@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import PageHeader from '@/components/page-header';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { User, Users, ArrowRight, BookUser, Award } from 'lucide-react';
+import { User, Users, ArrowRight, BookUser, Award, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const reportTypes = [
@@ -28,7 +28,13 @@ const reportTypes = [
     title: 'Top Attendees Report',
     description: 'See a ranked list of members with the highest attendance.',
     href: '/reports/top-attendees',
-  }
+  },
+  {
+    icon: Archive,
+    title: 'Backup & Export Data',
+    description: 'Download a full backup of all application data to a single JSON file.',
+    href: '/reports/backup',
+  },
 ];
 
 export default function ReportsPage() {
