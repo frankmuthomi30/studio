@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { AttendanceSession, Student } from '@/lib/types';
 import { useMemo } from 'react';
@@ -22,7 +22,6 @@ type RegisterReportProps = {
 export default function RegisterReport({ filters }: RegisterReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const firestore = useFirestore();
-    const { isUserLoading: authLoading } = useUser();
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
@@ -30,9 +29,9 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         setGeneratedDate(new Date());
     }, []);
 
-    // 1. Query for the sessions in the given date range for the specified choir
+    // 1. Query for the sessions in the given date range for the specified choir, without server-side sorting
     const sessionsQuery = useMemoFirebase(() => {
-        if (authLoading || !firestore || !filters.dateRange?.from || !filters.choirId) return null;
+        if (!firestore || !filters.dateRange?.from || !filters.choirId) return null;
 
         const fromDate = filters.dateRange.from;
         const toDate = filters.dateRange.to || filters.dateRange.from;
@@ -46,9 +45,10 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
             where('date', '>=', fromDate),
             where('date', '<=', endOfDay)
         );
-    }, [firestore, filters.dateRange, filters.choirId, authLoading]);
+    }, [firestore, filters.dateRange, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
+    // Sort on the client to find the earliest session
     const firstSession = useMemo(() => {
         if (!sessions || sessions.length === 0) return null;
         const sorted = [...sessions].sort((a, b) => a.date.toMillis() - b.date.toMillis());
@@ -63,10 +63,10 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
     // 3. Query for the student details based on the admission numbers from the session
     const studentQuery = useMemoFirebase(() => {
-        if (authLoading || !firestore || studentAdmissionNumbers.length === 0) return null;
+        if (!firestore || studentAdmissionNumbers.length === 0) return null;
         // Batching reads for up to 30 students at a time.
         return query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers.slice(0, 30)));
-    }, [firestore, studentAdmissionNumbers, authLoading]);
+    }, [firestore, studentAdmissionNumbers]);
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
 
     // 4. Combine data for the report
@@ -96,7 +96,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         );
     }
 
-    const isLoading = authLoading || sessionsLoading || (!!firstSession && studentsLoading);
+    const isLoading = sessionsLoading || (!!firstSession && studentsLoading);
 
     if (isLoading) {
         return (
