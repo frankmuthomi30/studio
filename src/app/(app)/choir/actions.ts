@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getFirestore, doc, deleteDoc, setDoc, serverTimestamp, writeBatch, collection, addDoc } from 'firebase/firestore/lite';
+import { getFirestore, doc, deleteDoc, setDoc, serverTimestamp, writeBatch, collection, addDoc, getDocs } from 'firebase/firestore/lite';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import type { Student, Choir } from '@/lib/types';
@@ -46,15 +46,30 @@ export async function saveChoir(
 export async function deleteChoir(choirId: string): Promise<{ success: boolean; message: string }> {
     const db = getDb();
     const choirRef = doc(db, 'choirs', choirId);
-    // Note: This does not delete subcollections (members). 
-    // Firestore security rules should prevent access, but for a production app, a Cloud Function would be needed to clean up.
+    const membersRef = collection(db, 'choirs', choirId, 'members');
+
     try {
-        await deleteDoc(choirRef);
+        // Find all members of the choir to delete them along with the choir
+        const membersSnapshot = await getDocs(membersRef);
+        const batch = writeBatch(db);
+
+        // Add all member deletions to the batch
+        membersSnapshot.forEach(memberDoc => {
+            batch.delete(memberDoc.ref);
+        });
+
+        // Add the choir document deletion to the batch
+        batch.delete(choirRef);
+
+        // Commit the batch
+        await batch.commit();
+        
         revalidatePath('/choir');
-        return { success: true, message: 'Choir has been deleted.' };
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Choir and all its members have been deleted.' };
     } catch (e: any) {
-        console.error('Error deleting choir:', e);
-        return { success: false, message: e.message || 'Could not delete choir.' };
+        console.error('Error deleting choir and its members:', e);
+        return { success: false, message: e.message || 'Could not delete choir and its members.' };
     }
 }
 
