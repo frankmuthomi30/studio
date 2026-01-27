@@ -29,7 +29,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         setGeneratedDate(new Date());
     }, []);
 
-    // 1. Query for all sessions for the specified choir
+    // 1. Query for all sessions for the specified choir (without sorting)
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !filters.choirId) return null;
 
@@ -40,7 +40,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    // Filter by date and sort on the client to find the earliest session
+    // 2. Filter by date and sort on the client to find the earliest session
     const firstSession = useMemo(() => {
         if (!sessions || sessions.length === 0 || !filters.dateRange?.from) return null;
         
@@ -57,18 +57,19 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
         if (filteredSessions.length === 0) return null;
 
+        // Sort on the client
         const sorted = filteredSessions.sort((a, b) => a.date.toMillis() - b.date.toMillis());
         return sorted[0];
     }, [sessions, filters.dateRange]);
 
 
-    // 2. Get the admission numbers from the first session's attendance map
+    // 3. Get the admission numbers from the first session's attendance map
     const studentAdmissionNumbers = useMemo(() => {
         if (!firstSession) return [];
         return Object.keys(firstSession.attendance_map);
     }, [firstSession]);
 
-    // 3. Query for the student details based on the admission numbers from the session
+    // 4. Query for the student details based on the admission numbers from the session
     const studentQuery = useMemoFirebase(() => {
         if (!firestore || studentAdmissionNumbers.length === 0) return null;
         // Batching reads for up to 30 students at a time.
@@ -76,7 +77,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, studentAdmissionNumbers]);
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
 
-    // 4. Combine data for the report
+    // 5. Combine data for the report
     const reportData = useMemo(() => {
         if (!students || !firstSession) {
             return null;
