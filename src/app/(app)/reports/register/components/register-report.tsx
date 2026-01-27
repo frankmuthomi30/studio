@@ -29,31 +29,38 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         setGeneratedDate(new Date());
     }, []);
 
-    // 1. Query for the sessions in the given date range for the specified choir, without server-side sorting
+    // 1. Query for all sessions for the specified choir
     const sessionsQuery = useMemoFirebase(() => {
-        if (!firestore || !filters.dateRange?.from || !filters.choirId) return null;
-
-        const fromDate = filters.dateRange.from;
-        const toDate = filters.dateRange.to || filters.dateRange.from;
-
-        const endOfDay = new Date(toDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        if (!firestore || !filters.choirId) return null;
 
         return query(
             collection(firestore, 'choir_attendance'),
-            where('choirId', '==', filters.choirId),
-            where('date', '>=', fromDate),
-            where('date', '<=', endOfDay)
+            where('choirId', '==', filters.choirId)
         );
-    }, [firestore, filters.dateRange, filters.choirId]);
+    }, [firestore, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    // Sort on the client to find the earliest session
+    // Filter by date and sort on the client to find the earliest session
     const firstSession = useMemo(() => {
-        if (!sessions || sessions.length === 0) return null;
-        const sorted = [...sessions].sort((a, b) => a.date.toMillis() - b.date.toMillis());
+        if (!sessions || sessions.length === 0 || !filters.dateRange?.from) return null;
+        
+        const fromDate = filters.dateRange.from;
+        const toDate = filters.dateRange.to || filters.dateRange.from;
+        
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const filteredSessions = sessions.filter(session => {
+            const sessionDate = session.date.toDate();
+            return sessionDate >= fromDate && sessionDate <= endOfDay;
+        });
+
+        if (filteredSessions.length === 0) return null;
+
+        const sorted = filteredSessions.sort((a, b) => a.date.toMillis() - b.date.toMillis());
         return sorted[0];
-    }, [sessions]);
+    }, [sessions, filters.dateRange]);
+
 
     // 2. Get the admission numbers from the first session's attendance map
     const studentAdmissionNumbers = useMemo(() => {
@@ -106,7 +113,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         );
     }
 
-    if (!reportData || !sessions || sessions.length === 0) {
+    if (!reportData || !sessions || sessions.length === 0 || !firstSession) {
         return (
             <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
                  <header className="flex items-start justify-between border-b-4 border-gray-800 pb-4">
