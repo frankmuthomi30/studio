@@ -15,7 +15,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import Logo from './logo';
 import { cn } from '@/lib/utils';
 
