@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveChoir } from '../actions';
 import { type Choir } from '@/lib/types';
 import { useEffect, useTransition } from 'react';
+import { useUser } from '@/firebase';
 
 import {
   Dialog,
@@ -38,6 +39,7 @@ type ChoirFormDialogProps = {
 export default function ChoirFormDialog({ isOpen, setIsOpen, choir }: ChoirFormDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,6 +64,14 @@ export default function ChoirFormDialog({ isOpen, setIsOpen, choir }: ChoirFormD
   }, [choir, form, isOpen]);
 
   const onSubmit: SubmitHandler<FormValues> = (values) => {
+    if (!user) {
+        toast({
+          variant: 'destructive',
+          title: 'Not Authenticated',
+          description: 'You must be logged in to save a choir.',
+        });
+        return;
+    }
     startTransition(async () => {
       const payload: Partial<Choir> = {
         ...values,
@@ -70,7 +80,7 @@ export default function ChoirFormDialog({ isOpen, setIsOpen, choir }: ChoirFormD
         payload.id = choir.id;
       }
 
-      const result = await saveChoir(payload);
+      const result = await saveChoir(payload, user.uid);
 
       if (result.success) {
         toast({

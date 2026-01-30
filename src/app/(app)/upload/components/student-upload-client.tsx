@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { processExcelFile, commitStudentData, type VerificationResult, type ParsedStudentData } from '../actions';
+import { useUser } from '@/firebase';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ export default function StudentUploadClient() {
   const [step, setStep] = useState<UploadStep>('idle');
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [committedData, setCommittedData] = useState<ParsedStudentData[]>([]);
-
+  const { user } = useUser();
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -75,8 +76,16 @@ export default function StudentUploadClient() {
   };
 
   const handleCommit = async (data: ParsedStudentData[]) => {
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Commit Failed',
+            description: 'You must be logged in to commit data.',
+        });
+        return;
+    }
     setStep('commit');
-    const result = await commitStudentData(data);
+    const result = await commitStudentData(data, user.uid);
     if (result.success) {
         toast({
             title: 'Success!',

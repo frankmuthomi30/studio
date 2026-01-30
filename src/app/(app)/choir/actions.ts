@@ -15,7 +15,8 @@ function getDb() {
 }
 
 export async function saveChoir(
-  choirData: Partial<Choir>
+  choirData: Partial<Choir>,
+  userId: string
 ): Promise<{ success: boolean; message: string; id?: string }> {
   const db = getDb();
   
@@ -31,7 +32,7 @@ export async function saveChoir(
       const newChoirData = {
         ...choirData,
         created_at: serverTimestamp(),
-        // created_by should be current user ID
+        created_by: userId,
       };
       const docRef = await addDoc(collection(db, 'choirs'), newChoirData);
       revalidatePath('/choir');
@@ -76,7 +77,8 @@ export async function deleteChoir(choirId: string): Promise<{ success: boolean; 
 
 export async function addStudentToChoir(
     choirId: string,
-    student: Student
+    student: Student,
+    userId: string
 ): Promise<{ success: boolean; message: string }> {
     const db = getDb();
     const memberRef = doc(db, 'choirs', choirId, 'members', student.admission_number);
@@ -89,7 +91,7 @@ export async function addStudentToChoir(
             class: student.class,
             status: 'active',
             date_joined: serverTimestamp(),
-            // added_by should be current user ID
+            added_by: userId,
         };
         await setDoc(memberRef, memberData);
         revalidatePath(`/choir/${choirId}`);

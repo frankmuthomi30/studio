@@ -35,11 +35,15 @@ import type { StudentWithChoirStatus } from '@/lib/types';
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  meta?: {
+    userId?: string;
+  }
 }
 
 export function DataTable<TData extends StudentWithChoirStatus, TValue>({
   columns,
   data,
+  meta,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -47,6 +51,7 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
   const table = useReactTable({
     data,
     columns,
+    meta,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,

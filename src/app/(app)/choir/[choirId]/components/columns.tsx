@@ -1,6 +1,6 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, Table } from '@tanstack/react-table';
 import type { Student, StudentWithChoirStatus } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUpDown, MoreHorizontal, CheckCircle, XCircle, UserPlus, UserX } from 'lucide-react';
@@ -73,23 +73,25 @@ export const columns = ({ choirId, choirName }: ColumnsFnProps ): ColumnDef<Stud
   },
   {
     id: 'actions',
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const student = row.original;
       const [isPending, startTransition] = useTransition();
       const { toast } = useToast();
+      const { userId } = table.options.meta as { userId?: string };
 
       const handleAdd = () => {
+        if (!userId) {
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add a student.' });
+            return;
+        }
         startTransition(async () => {
-          // Create a plain object with only the necessary primitive values.
-          // This avoids passing complex objects with methods (like Timestamps)
-          // to Server Actions, which causes the serialization error.
           const plainStudent: Partial<Student> = {
             admission_number: student.admission_number,
             first_name: student.first_name,
             last_name: student.last_name,
             class: student.class,
           };
-          const result = await addStudentToChoir(choirId, plainStudent as Student);
+          const result = await addStudentToChoir(choirId, plainStudent as Student, userId);
           if (result.success) {
             toast({ title: 'Success', description: result.message });
           } else {

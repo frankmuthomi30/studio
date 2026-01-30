@@ -99,7 +99,7 @@ export async function processExcelFile(
   }
 }
 
-export async function commitStudentData(students: ParsedStudentData[]): Promise<{ success: boolean; message: string }> {
+export async function commitStudentData(students: ParsedStudentData[], userId: string): Promise<{ success: boolean; message: string }> {
     const db = getDb();
     const batch = writeBatch(db);
     
@@ -109,7 +109,7 @@ export async function commitStudentData(students: ParsedStudentData[]): Promise<
       batch.set(docRef, { 
           ...studentData, 
           uploaded_at: serverTimestamp(),
-          // uploaded_by should be current user ID
+          uploaded_by: userId,
         }, { merge: true });
     });
     

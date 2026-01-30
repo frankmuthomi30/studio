@@ -8,12 +8,13 @@ type MemberManagementClientProps = {
   choirId: string;
   choirName: string;
   data: StudentWithChoirStatus[];
+  userId?: string;
 };
 
-export default function MemberManagementClient({ choirId, choirName, data }: MemberManagementClientProps) {
+export default function MemberManagementClient({ choirId, choirName, data, userId }: MemberManagementClientProps) {
   return (
     <div>
-      <DataTable columns={columns({ choirId, choirName })} data={data} />
+      <DataTable columns={columns({ choirId, choirName })} data={data} meta={{ userId }} />
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.replace('/');
+      router.replace('/login');
     }
   }, [user, isUserLoading, router]);
 

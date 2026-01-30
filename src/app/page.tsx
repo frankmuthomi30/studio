@@ -2,17 +2,15 @@
 
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { ArrowRight, Loader2, LogIn, UserPlus } from 'lucide-react';
+import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import Link from 'next/link';
 
-export default function LoginPage() {
-  const auth = useAuth();
+export default function LandingPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [isSigningIn, setIsSigningIn] = useState(false);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -21,21 +19,8 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-
-  const handleLogin = async () => {
-    setIsSigningIn(true);
-    try {
-        await signInAnonymously(auth);
-        // The onAuthStateChanged listener in the provider will handle the user state update
-        // and the AuthGuard will handle the redirect.
-    } catch (error) {
-        console.error("Anonymous sign-in failed", error);
-        setIsSigningIn(false);
-    }
-  };
-
   // While checking auth state or if user exists, show a loader.
-  // This prevents a flash of the login page before redirecting.
+  // This prevents a flash of the landing page before redirecting.
   if (isUserLoading || user) {
       return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -60,18 +45,22 @@ export default function LoginPage() {
             </p>
           </div>
           <div className="w-full space-y-4">
-            <Button onClick={handleLogin} size="lg" className="w-full" disabled={isSigningIn}>
-              {isSigningIn ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <>
-                  Login & Access Dashboard
-                  <ArrowRight />
-                </>
-              )}
-            </Button>
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Button asChild size="lg" variant="outline">
+                    <Link href="/login">
+                        <LogIn />
+                        Login
+                    </Link>
+                </Button>
+                <Button asChild size="lg">
+                    <Link href="/signup">
+                        <UserPlus />
+                        Sign Up
+                    </Link>
+                </Button>
+            </div>
             <p className="text-center text-xs text-muted-foreground">
-              Click to securely access the application.
+              Login to access the dashboard or Sign Up to create a new account.
             </p>
           </div>
         </div>

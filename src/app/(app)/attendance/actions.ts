@@ -15,7 +15,8 @@ function getDb() {
 }
 
 export async function saveAttendanceSession(
-  sessionData: Omit<AttendanceSession, 'id' | 'recorded_at' | 'locked' | 'date'> & { date: Date }
+  sessionData: Omit<AttendanceSession, 'id' | 'recorded_at' | 'locked' | 'date' | 'recorded_by'> & { date: Date },
+  userId: string
 ): Promise<{ success: boolean; message: string }> {
   const db = getDb();
   
@@ -26,7 +27,7 @@ export async function saveAttendanceSession(
     date: Timestamp.fromDate(sessionData.date),
     recorded_at: serverTimestamp(),
     locked: false,
-    // recorded_by: should be current user ID
+    recorded_by: userId,
   };
   
   const sessionRef = doc(db, 'choir_attendance', id);

@@ -13,7 +13,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function ChoirMemberPage({ params }: { params: { choirId: string } }) {
   const { choirId } = use(params as any);
   const firestore = useFirestore();
-  const { isUserLoading: authLoading } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
 
   const choirRef = useMemoFirebase(() => 
     !authLoading && firestore ? doc(firestore, 'choirs', choirId) : null, [firestore, choirId, authLoading]);
@@ -70,6 +70,7 @@ export default function ChoirMemberPage({ params }: { params: { choirId: string 
                 choirId={choirId}
                 choirName={choir?.name || 'this choir'}
                 data={studentsWithStatus}
+                userId={user?.uid}
             />
         )}
       </div>

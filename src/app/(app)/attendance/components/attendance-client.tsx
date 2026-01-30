@@ -31,7 +31,7 @@ export default function AttendanceClient() {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { isUserLoading: authLoading } = useUser();
+  const { user, isUserLoading: authLoading } = useUser();
   const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
 
   const [students, setStudents] = useState<Student[] | null>(null);
@@ -120,6 +120,10 @@ export default function AttendanceClient() {
   const activeStudents = useMemo(() => students || [], [students]);
 
   const handleCreateAndSaveSession = async () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to create a session.' });
+        return;
+    }
     if (!selectedChoir) {
         toast({ variant: 'destructive', title: 'No Choir Selected', description: 'Please select a choir to create a session.' });
         return;
@@ -146,7 +150,7 @@ export default function AttendanceClient() {
       date: newSession.date,
       practice_type: newSession.practice_type,
       attendance_map: initialAttendanceMap,
-    });
+    }, user.uid);
 
     if (result.success) {
       toast({
@@ -168,7 +172,7 @@ export default function AttendanceClient() {
   };
 
   const handleSaveAttendance = async (attendanceMap: Record<string, boolean>) => {
-    if (!sessionToEdit || !selectedChoir) return;
+    if (!sessionToEdit || !selectedChoir || !user) return;
     setIsSaving(true);
     
     const result = await saveAttendanceSession({
@@ -177,7 +181,7 @@ export default function AttendanceClient() {
       date: sessionToEdit.date,
       practice_type: sessionToEdit.practice_type,
       attendance_map: attendanceMap,
-    });
+    }, user.uid);
     
     if (result.success) {
       toast({ title: 'Success!', description: result.message });
