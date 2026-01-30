@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { saveList } from '../actions';
 import DeleteListButton from './delete-list-button';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Editor component for a single list
@@ -100,30 +101,20 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
     const handleExportPdf = async () => {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-        const schoolLogoPath = '/images/school-logo.png';
+        const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
         let cursorY = margin;
         
         // --- PDF Header ---
-        try {
-            const response = await fetch(schoolLogoPath);
-            if (response.ok) {
-                const blob = await response.blob();
-                const dataUrl = await new Promise<string | ArrayBuffer | null>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blob);
-                });
-                if (dataUrl) {
-                    doc.addImage(dataUrl as string, 'PNG', margin, cursorY, 20, 20);
-                }
-            } else {
-                 console.error("Could not load logo for PDF. Make sure the file exists at /public/images/school-logo.png.");
+        if (schoolLogo?.imageUrl) {
+            try {
+                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
+            } catch (error) {
+                console.error("An error occurred while trying to add the logo image to the PDF:", error);
+                 console.error("Could not load logo for PDF. This might happen on local machines if the base64 string is too large or malformed.");
             }
-        } catch (error) {
-            console.error("An error occurred while trying to load the logo for the PDF:", error);
         }
     
         doc.setFont('times', 'bold');
