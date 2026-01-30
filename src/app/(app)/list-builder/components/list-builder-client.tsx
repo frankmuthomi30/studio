@@ -3,7 +3,7 @@ import { useState, useMemo, useTransition } from 'react';
 import type { CustomList, Student } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, orderBy } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Trash2, Users, X, ListPlus, Edit } from 'lucide-react';
+import { Loader2, Plus, Printer, Search, Trash2, Users, X, ListPlus, Edit, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
