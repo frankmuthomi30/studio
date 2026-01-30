@@ -119,10 +119,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
          <p className="mt-4 text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link href="/signup" className="font-semibold text-primary hover:underline">
-            Sign Up
-          </Link>
+          To get an account, please contact the administrator.
         </p>
       </div>
     </div>

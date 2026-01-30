@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { ArrowRight, Loader2, LogIn, UserPlus } from 'lucide-react';
+import { ArrowRight, Loader2, LogIn } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -45,22 +45,14 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="w-full space-y-4">
-             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Button asChild size="lg" variant="outline">
-                    <Link href="/login">
-                        <LogIn />
-                        Login
-                    </Link>
-                </Button>
-                <Button asChild size="lg">
-                    <Link href="/signup">
-                        <UserPlus />
-                        Sign Up
-                    </Link>
-                </Button>
-            </div>
+            <Button asChild size="lg">
+                <Link href="/login">
+                    <LogIn />
+                    Proceed to Login
+                </Link>
+            </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Login to access the dashboard or Sign Up to create a new account.
+              Login to access the dashboard. Please contact the administrator if you need an account.
             </p>
           </div>
         </div>
