@@ -107,44 +107,37 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const margin = 15;
         let cursorY = margin;
         
-        // --- PDF Header (Centered) ---
-        const logoWidth = 20;
-        const logoHeight = 20;
-        const logoX = (pageWidth - logoWidth) / 2;
-
+        // --- PDF Header (Logo Left) ---
         if (schoolLogo?.imageUrl) {
             try {
-                doc.addImage(schoolLogo.imageUrl, 'PNG', logoX, cursorY, logoWidth, logoHeight);
+                // Use the base64 string directly
+                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
             } catch (error) {
                 console.error("An error occurred while trying to add the logo image to the PDF:", error);
                 console.error("Could not load logo for PDF. This might happen on local machines if the base64 string is too large or malformed.");
             }
         }
-        cursorY += logoHeight + 5;
     
         doc.setFont('times', 'bold');
         doc.setFontSize(20);
-        doc.text("GATURA GIRLS", pageWidth / 2, cursorY, { align: 'center' });
-        cursorY += 7;
-
+        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
+    
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
-        const contactLine = "30-01013, Muranga.  |  gaturagirls@gmail.com  |  0793328863";
-        doc.text(contactLine, pageWidth / 2, cursorY, { align: 'center' });
-        cursorY += 4;
-        doc.text("https://stteresagaturagirls.sc.ke/", pageWidth / 2, cursorY, { align: 'center' });
-        cursorY += 8;
+        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
+        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
+        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
+        doc.text("0793328863", margin + 25, cursorY + 24);
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text(listTitle, pageWidth / 2, cursorY, { align: 'center' });
-        cursorY += 6;
-
+        doc.text(listTitle, pageWidth - margin, cursorY + 15, { align: 'right' });
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("Custom Student List", pageWidth / 2, cursorY, { align: 'center' });
+        doc.text("Custom Student List", pageWidth - margin, cursorY + 20, { align: 'right' });
         doc.setTextColor(0);
-        cursorY += 15;
+
+        cursorY += 35;
 
         (doc as any).autoTable({
             head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
