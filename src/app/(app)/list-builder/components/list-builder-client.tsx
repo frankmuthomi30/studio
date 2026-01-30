@@ -105,15 +105,27 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const margin = 15;
         let cursorY = margin;
         
+        // --- PDF Header ---
         doc.setFont('times', 'bold');
         doc.setFontSize(20);
         doc.text("GATURA GIRLS", margin, cursorY + 7);
+    
+        doc.setFont('times', 'normal');
+        doc.setFontSize(9);
+        doc.text("30-01013, Muranga.", margin, cursorY + 12);
+        doc.text("gaturagirls@gmail.com", margin, cursorY + 16);
+        doc.text("https://stteresagaturagirls.sc.ke/", margin, cursorY + 20);
+        doc.text("0793328863", margin, cursorY + 24);
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
         doc.text(listTitle, pageWidth - margin, cursorY + 15, { align: 'right' });
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Custom Student List", pageWidth - margin, cursorY + 20, { align: 'right' });
+        doc.setTextColor(0);
     
-        cursorY += 30;
+        cursorY += 35;
 
         (doc as any).autoTable({
             head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
