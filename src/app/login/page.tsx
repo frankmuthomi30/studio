@@ -53,10 +53,22 @@ export default function LoginPage() {
       // The auth guard will handle the redirect on user state change
     } catch (error: any) {
       console.error('Login Error:', error);
+      
+      let description = 'An unknown error occurred. Please check your credentials and try again.';
+      
+      // Firebase provides specific error codes for different auth failures.
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        description = 'The email or password you entered is incorrect. Please double-check your credentials.';
+      } else if (error.code === 'auth/invalid-email') {
+        description = 'The email address you entered is not valid. Please check the format.';
+      } else if (error.code === 'auth/too-many-requests') {
+        description = 'Access to this account has been temporarily disabled due to many failed login attempts. You can try again later.';
+      }
+
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message || 'An unknown error occurred. Please check your credentials.',
+        description,
       });
       setIsSigningIn(false);
     }
