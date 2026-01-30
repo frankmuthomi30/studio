@@ -10,6 +10,7 @@ import {
   Printer,
   LogOut,
   Music,
+  ClipboardList,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/choir', icon: Music, label: 'Choirs' },
   { href: '/attendance', icon: ClipboardCheck, label: 'Attendance' },
   { href: '/reports', icon: Printer, label: 'Reports' },
+  { href: '/list-builder', icon: ClipboardList, label: 'List Builder' },
 ];
 
 export default function MainSidebar() {

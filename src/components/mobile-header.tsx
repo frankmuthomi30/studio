@@ -12,9 +12,10 @@ import {
   LogOut,
   Menu,
   Music,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import Logo from './logo';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/choir', icon: Music, label: 'Choirs' },
   { href: '/attendance', icon: ClipboardCheck, label: 'Attendance' },
   { href: '/reports', icon: Printer, label: 'Reports' },
+  { href: '/list-builder', icon: ClipboardList, label: 'List Builder' },
 ];
 
 export function MobileHeader() {
