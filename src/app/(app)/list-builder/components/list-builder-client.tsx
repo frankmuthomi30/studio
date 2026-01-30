@@ -35,7 +35,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
-    const [foundStudent, setFoundStudent] = useState<Student | null>(null);
+    const [foundStudents, setFoundStudents] = useState<Student[] | null>(null);
     const [isFinding, setIsFinding] = useState(false);
     const [findError, setFindError] = useState<string | null>(null);
 
@@ -91,24 +91,77 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const handleFindStudent = async () => {
         if (!searchTerm.trim() || !firestore) return;
         setIsFinding(true);
-        setFoundStudent(null);
+        setFoundStudents(null);
         setFindError(null);
-
+        const term = searchTerm.trim();
+        // Also search for capitalized version for better matching of names
+        const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1);
+    
         try {
-            if (studentAdmissionNumbers.includes(searchTerm.trim())) {
-                setFindError('This student is already in the list.');
-                return;
-            }
-            const docRef = doc(firestore, 'students', searchTerm.trim());
+            const found: Student[] = [];
+            const foundIds = new Set<string>();
+    
+            // 1. Search by admission number (exact match)
+            const docRef = doc(firestore, 'students', term);
             const docSnap = await getDoc(docRef);
-
             if (docSnap.exists()) {
-                setFoundStudent({ id: docSnap.id, ...docSnap.data() } as Student);
-            } else {
-                setFindError('No student found with that Admission Number.');
+                const student = { id: docSnap.id, ...docSnap.data() } as Student;
+                if (!foundIds.has(student.id!)) {
+                    found.push(student);
+                    foundIds.add(student.id!);
+                }
             }
+    
+            // 2. Search by name (prefix search on first_name and last_name)
+            // Since we can't do OR, we run multiple queries.
+            // We'll search for the raw term and a capitalized version to handle some casing issues.
+            const searchTerms = Array.from(new Set([term, capitalizedTerm]));
+            
+            for (const st of searchTerms) {
+                const qFirstName = query(
+                    collection(firestore, 'students'),
+                    where('first_name', '>=', st),
+                    where('first_name', '<=', st + '\uf8ff')
+                );
+                const firstNameSnap = await getDocs(qFirstName);
+                firstNameSnap.forEach(doc => {
+                    const student = { id: doc.id, ...doc.data() } as Student;
+                    if (!foundIds.has(student.id!)) {
+                        found.push(student);
+                        foundIds.add(student.id!);
+                    }
+                });
+    
+                const qLastName = query(
+                    collection(firestore, 'students'),
+                    where('last_name', '>=', st),
+                    where('last_name', '<=', st + '\uf8ff')
+                );
+                const lastNameSnap = await getDocs(qLastName);
+                lastNameSnap.forEach(doc => {
+                    const student = { id: doc.id, ...doc.data() } as Student;
+                    if (!foundIds.has(student.id!)) {
+                        found.push(student);
+                        foundIds.add(student.id!);
+                    }
+                });
+            }
+    
+            if (found.length > 0) {
+                // Filter out students already in the list
+                const newResults = found.filter(s => !studentAdmissionNumbers.includes(s.admission_number));
+                if (newResults.length > 0) {
+                    setFoundStudents(newResults); // Set array of students
+                } else {
+                     setFindError('All matching students are already in the list.');
+                }
+            } else {
+                 setFindError('No student found with that Admission Number or Name.');
+            }
+    
         } catch (error) {
             setFindError('An error occurred while searching.');
+            console.error(error);
         } finally {
             setIsFinding(false);
         }
@@ -116,8 +169,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
     const handleAddStudent = (student: Student) => {
         setStudentAdmissionNumbers(prev => [...prev, student.admission_number]);
-        setFoundStudent(null);
-        setSearchTerm('');
+        setFoundStudents(prev => prev ? prev.filter(s => s.id !== student.id) : null);
         setFindError(null);
     };
 
@@ -157,7 +209,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
             } catch (error) {
                 console.error("An error occurred while trying to add the logo image to the PDF:", error);
-                console.error("Could not load logo for PDF. This might happen if the base64 string is malformed.");
+                // Don't re-throw, just log it. The PDF can generate without the logo.
             }
         }
     
@@ -267,11 +319,11 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                         <CardContent className="space-y-4">
                             <div className="flex items-start gap-2">
                                 <Input 
-                                    placeholder="Enter Admission No..."
+                                    placeholder="Enter Admission No. or Name..."
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
-                                        setFoundStudent(null);
+                                        setFoundStudents(null);
                                         setFindError(null);
                                     }}
                                     onKeyDown={(e) => { if (e.key === 'Enter') handleFindStudent()}}
@@ -282,12 +334,22 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                             {isFinding && <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                             {findError && <p className="text-sm text-destructive">{findError}</p>}
 
-                            {foundStudent && (
-                                <div className="p-3 bg-muted rounded-md text-sm space-y-3">
-                                    <p><span className="font-semibold">Found:</span> {foundStudent.first_name} {foundStudent.last_name} ({foundStudent.class})</p>
-                                    <Button size="sm" className="w-full" onClick={() => handleAddStudent(foundStudent)}>
-                                        <Plus className="mr-2 h-4 w-4" /> Add to List
-                                    </Button>
+                            {foundStudents && foundStudents.length > 0 && (
+                                <div className="p-3 bg-muted rounded-md text-sm space-y-3 mt-2">
+                                    <p className="font-semibold">Found {foundStudents.length} student(s):</p>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                                        {foundStudents.map(student => (
+                                            <div key={student.id} className="flex justify-between items-center bg-background p-2 rounded-md">
+                                                <div>
+                                                    <p className="font-medium">{student.first_name} {student.last_name}</p>
+                                                    <p className="text-xs text-muted-foreground">{student.admission_number} - {student.class}</p>
+                                                </div>
+                                                <Button size="sm" onClick={() => handleAddStudent(student)}>
+                                                    <Plus className="mr-2 h-4 w-4" /> Add
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
@@ -360,7 +422,7 @@ export default function ListBuilderClient() {
             return;
         }
         startTransition(async () => {
-            const result = await saveList({ title: newListTitle });
+            const result = await saveList({ title: newListTitle, prepared_by: '' });
             if (result.success && result.id) {
                 toast({ title: 'Success!', description: `List '${newListTitle}' created.` });
                 // Immediately switch to editing the new list
