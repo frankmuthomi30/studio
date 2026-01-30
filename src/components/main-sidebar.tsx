@@ -15,6 +15,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import Logo from './logo';
+import { useAuth } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -27,6 +28,11 @@ const navItems = [
 
 export default function MainSidebar() {
   const pathname = usePathname();
+  const auth = useAuth();
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 flex-col border-r bg-card md:flex">
@@ -40,7 +46,7 @@ export default function MainSidebar() {
             href={item.href}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary',
-              (pathname.startsWith(item.href) && item.href !== '/dashboard' || pathname === item.href)
+              (pathname.startsWith(item.href) && item.href !== '/dashboard') || pathname === item.href
                 ? 'bg-muted text-primary'
                 : ''
             )}
@@ -51,13 +57,13 @@ export default function MainSidebar() {
         ))}
       </nav>
       <div className="mt-auto border-t p-4">
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary"
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary"
         >
           <LogOut className="h-5 w-5" />
           <span className="font-medium">Logout</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

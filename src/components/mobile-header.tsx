@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import Logo from './logo';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -31,8 +32,14 @@ const navItems = [
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const auth = useAuth();
 
   const closeSheet = () => setIsOpen(false);
+
+  const handleLogout = () => {
+    auth.signOut();
+    closeSheet();
+  };
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-4 md:hidden">
@@ -58,7 +65,7 @@ export function MobileHeader() {
                 onClick={closeSheet}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary',
-                  (pathname.startsWith(item.href) && item.href !== '/dashboard' || pathname === item.href)
+                  (pathname.startsWith(item.href) && item.href !== '/dashboard') || pathname === item.href
                     ? 'bg-muted text-primary'
                     : ''
                 )}
@@ -69,14 +76,13 @@ export function MobileHeader() {
             ))}
           </nav>
           <div className="absolute bottom-0 w-full border-t p-4">
-            <Link
-              href="/"
-              onClick={closeSheet}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary"
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary"
             >
               <LogOut className="h-5 w-5" />
               <span className="font-medium">Logout</span>
-            </Link>
+            </button>
           </div>
         </SheetContent>
       </Sheet>
