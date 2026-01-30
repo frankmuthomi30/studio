@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import type { Student } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { Loader2, Plus, Printer, Trash2, Users, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ export default function ListBuilderClient() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const studentsQuery = useMemoFirebase(() => 
-        !authLoading && firestore ? query(collection(firestore, 'students'), orderBy('class'), orderBy('first_name')) : null
+        !authLoading && firestore ? query(collection(firestore, 'students')) : null
     , [firestore, authLoading]);
     const { data: allStudents, isLoading: studentsLoading } = useCollection<Student>(studentsQuery);
 
@@ -31,11 +31,19 @@ export default function ListBuilderClient() {
     const availableStudents = useMemo(() => {
         if (!allStudents) return [];
         const lowercasedFilter = searchTerm.toLowerCase();
-        return allStudents.filter(student => {
+        const filtered = allStudents.filter(student => {
             if (customListIds.has(student.id!)) return false;
             const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
             return fullName.includes(lowercasedFilter) || student.admission_number.includes(lowercasedFilter);
         });
+
+        // Sort client-side to avoid complex Firestore queries
+        return filtered.sort((a, b) => {
+            const classComparison = (a.class || '').localeCompare(b.class || '');
+            if (classComparison !== 0) return classComparison;
+            return (a.first_name || '').localeCompare(b.first_name || '');
+        });
+
     }, [allStudents, customListIds, searchTerm]);
 
     const handleAddStudent = (student: Student) => {
@@ -64,6 +72,7 @@ export default function ListBuilderClient() {
         // --- PDF Header ---
         try {
             const response = await fetch(schoolLogoPath);
+            if (!response.ok) throw new Error('Logo not found');
             const blob = await response.blob();
             const dataUrl = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
