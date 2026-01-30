@@ -36,6 +36,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
+// This file was a duplicate and has been corrected to prevent build errors.
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -57,6 +58,8 @@ export function DataTable<TData, TValue>({
       columnFilters,
     },
   });
+  
+  const statusOptions = ['active', 'inactive', 'not_member'];
 
   return (
     <div>
@@ -76,28 +79,21 @@ export function DataTable<TData, TValue>({
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    {table
-                    .getColumn('status')
-                    ?.getFacetedRowModel()
-                    .flatRows.map((row) => row.getValue('status'))
-                    .filter((value, index, self) => self.indexOf(value) === index)
-                    .sort()
-                    .map((status) => {
+                    {statusOptions.map((status) => {
+                        const currentFilter = (table.getColumn('status')?.getFilterValue() as string[] | undefined) ?? [];
                         return (
                         <DropdownMenuCheckboxItem
-                            key={String(status)}
+                            key={status}
                             className="capitalize"
-                            checked={table.getColumn('status')?.getFilterValue()?.includes(status) ?? false}
+                            checked={currentFilter.includes(status)}
                             onCheckedChange={(value) => {
-                                const currentFilter = (table.getColumn('status')?.getFilterValue() as string[] | undefined) ?? [];
-                                if (value) {
-                                    table.getColumn('status')?.setFilterValue([...currentFilter, status]);
-                                } else {
-                                    table.getColumn('status')?.setFilterValue(currentFilter.filter(s => s !== status));
-                                }
+                                const newFilter = value 
+                                    ? [...currentFilter, status] 
+                                    : currentFilter.filter(s => s !== status);
+                                table.getColumn('status')?.setFilterValue(newFilter.length > 0 ? newFilter : undefined);
                             }}
                         >
-                            {String(status).replace('_', ' ')}
+                            {status.replace('_', ' ')}
                         </DropdownMenuCheckboxItem>
                         )
                     })}
