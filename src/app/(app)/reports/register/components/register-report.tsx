@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { AttendanceSession, Student } from '@/lib/types';
 import { useMemo } from 'react';
 import type { DateRange } from 'react-day-picker';
@@ -29,7 +29,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         setGeneratedDate(new Date());
     }, []);
 
-    // 1. Query for all sessions for the specified choir (without sorting)
+    // 1. Query for all sessions for the specified choir
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !filters.choirId) return null;
 
@@ -40,7 +40,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    // 2. Filter by date and sort on the client to find the earliest session
+    // Filter by date and sort on the client to find the earliest session
     const firstSession = useMemo(() => {
         if (!sessions || sessions.length === 0 || !filters.dateRange?.from) return null;
         
@@ -57,27 +57,66 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
         if (filteredSessions.length === 0) return null;
 
-        // Sort on the client
         const sorted = filteredSessions.sort((a, b) => a.date.toMillis() - b.date.toMillis());
         return sorted[0];
     }, [sessions, filters.dateRange]);
 
-
-    // 3. Get the admission numbers from the first session's attendance map
+    // 2. Get the admission numbers from the first session's attendance map
     const studentAdmissionNumbers = useMemo(() => {
         if (!firstSession) return [];
         return Object.keys(firstSession.attendance_map);
     }, [firstSession]);
 
-    // 4. Query for the student details based on the admission numbers from the session
-    const studentQuery = useMemoFirebase(() => {
-        if (!firestore || studentAdmissionNumbers.length === 0) return null;
-        // Batching reads for up to 30 students at a time.
-        return query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers.slice(0, 30)));
-    }, [firestore, studentAdmissionNumbers]);
-    const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
+    // 3. Query for the student details based on the admission numbers from the session
+    const [students, setStudents] = useState<Student[] | null>(null);
+    const [studentsLoading, setStudentsLoading] = useState(false);
 
-    // 5. Combine data for the report
+    useEffect(() => {
+        if (!firestore || studentAdmissionNumbers.length === 0) {
+            setStudents([]);
+            return;
+        }
+
+        const fetchStudentsInChunks = async () => {
+            setStudentsLoading(true);
+            const allStudents: Student[] = [];
+            const chunks: string[][] = [];
+
+            for (let i = 0; i < studentAdmissionNumbers.length; i += 30) {
+                chunks.push(studentAdmissionNumbers.slice(i, i + 30));
+            }
+
+            try {
+                const queryPromises = chunks.map(chunk => {
+                    if (chunk.length > 0) {
+                        const q = query(collection(firestore, 'students'), where('admission_number', 'in', chunk));
+                        return getDocs(q);
+                    }
+                    return Promise.resolve(null);
+                });
+                
+                const querySnapshots = await Promise.all(queryPromises);
+
+                for (const querySnapshot of querySnapshots) {
+                    if (querySnapshot) {
+                        querySnapshot.forEach((doc) => {
+                            allStudents.push({ id: doc.id, ...doc.data() } as Student);
+                        });
+                    }
+                }
+                setStudents(allStudents);
+            } catch (error) {
+                console.error("Error fetching students in chunks:", error);
+            } finally {
+                setStudentsLoading(false);
+            }
+        };
+
+        fetchStudentsInChunks();
+    }, [firestore, studentAdmissionNumbers]);
+
+
+    // 4. Combine data for the report
     const reportData = useMemo(() => {
         if (!students || !firstSession) {
             return null;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Student, ChoirMember, AttendanceSession, Choir } from '@/lib/types';
 import { saveAttendanceSession } from '../actions';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AttendanceSheet from './attendance-sheet';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import DeleteSessionButton from '../../dashboard/components/delete-session-button';
@@ -33,6 +33,9 @@ export default function AttendanceClient() {
   const firestore = useFirestore();
   const { isUserLoading: authLoading } = useUser();
   const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
+
+  const [students, setStudents] = useState<Student[] | null>(null);
+  const [studentsLoading, setStudentsLoading] = useState(false);
 
   const choirsQuery = useMemoFirebase(() => 
     !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, 
@@ -56,12 +59,51 @@ export default function AttendanceClient() {
     return activeChoirMembers.map(m => m.admission_number);
   }, [activeChoirMembers]);
 
-  const studentQuery = useMemoFirebase(() =>
-    !authLoading && firestore && studentAdmissionNumbers.length > 0
-    ? query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers)) 
-    : null
-  , [firestore, studentAdmissionNumbers, authLoading]);
-  const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
+  useEffect(() => {
+    if (!firestore || studentAdmissionNumbers.length === 0) {
+        setStudents([]);
+        return;
+    }
+
+    const fetchStudentsInChunks = async () => {
+        setStudentsLoading(true);
+        const allStudents: Student[] = [];
+        const chunks: string[][] = [];
+
+        for (let i = 0; i < studentAdmissionNumbers.length; i += 30) {
+            chunks.push(studentAdmissionNumbers.slice(i, i + 30));
+        }
+
+        try {
+            const queryPromises = chunks.map(chunk => {
+                if (chunk.length > 0) {
+                    const q = query(collection(firestore, 'students'), where('admission_number', 'in', chunk));
+                    return getDocs(q);
+                }
+                return Promise.resolve(null);
+            });
+
+            const querySnapshots = await Promise.all(queryPromises);
+
+            for (const querySnapshot of querySnapshots) {
+                if (querySnapshot) {
+                    querySnapshot.forEach((doc) => {
+                        allStudents.push({ id: doc.id, ...doc.data() } as Student);
+                    });
+                }
+            }
+            setStudents(allStudents);
+        } catch (error) {
+            console.error("Error fetching students in chunks:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load student details for the attendance sheet.' });
+        } finally {
+            setStudentsLoading(false);
+        }
+    };
+
+    fetchStudentsInChunks();
+  }, [firestore, studentAdmissionNumbers, toast]);
+
 
   const sessionsQuery = useMemoFirebase(() =>
     !authLoading && firestore && selectedChoirId

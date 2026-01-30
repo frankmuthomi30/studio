@@ -1,8 +1,8 @@
 'use client';
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { CustomList, Student } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc, getDoc, getDocs, orderBy } from 'firebase/firestore';
 import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { saveList } from '../actions';
 import DeleteListButton from './delete-list-button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
@@ -40,12 +39,53 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [findError, setFindError] = useState<string | null>(null);
 
     // Fetch student details for the IDs in the list
-    const studentsQuery = useMemoFirebase(() =>
-        firestore && studentAdmissionNumbers.length > 0
-        ? query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers)) 
-        : null
-    , [firestore, studentAdmissionNumbers]);
-    const { data: studentsInList, isLoading: studentsLoading } = useCollection<Student>(studentsQuery);
+    const [studentsInList, setStudentsInList] = useState<Student[] | null>(null);
+    const [studentsLoading, setStudentsLoading] = useState(false);
+
+    useEffect(() => {
+        if (!firestore || studentAdmissionNumbers.length === 0) {
+            setStudentsInList([]);
+            return;
+        }
+
+        const fetchStudentsInChunks = async () => {
+            setStudentsLoading(true);
+            const allStudents: Student[] = [];
+            const chunks: string[][] = [];
+            
+            for (let i = 0; i < studentAdmissionNumbers.length; i += 30) {
+                chunks.push(studentAdmissionNumbers.slice(i, i + 30));
+            }
+
+            try {
+                const queryPromises = chunks.map(chunk => {
+                    if (chunk.length > 0) {
+                        const q = query(collection(firestore, 'students'), where('admission_number', 'in', chunk));
+                        return getDocs(q);
+                    }
+                    return Promise.resolve(null);
+                });
+
+                const querySnapshots = await Promise.all(queryPromises);
+
+                for (const querySnapshot of querySnapshots) {
+                    if (querySnapshot) {
+                        querySnapshot.forEach((doc) => {
+                            allStudents.push({ id: doc.id, ...doc.data() } as Student);
+                        });
+                    }
+                }
+                setStudentsInList(allStudents);
+            } catch (error) {
+                console.error("Error fetching students in chunks:", error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load student details for the list.' });
+            } finally {
+                setStudentsLoading(false);
+            }
+        };
+
+        fetchStudentsInChunks();
+    }, [firestore, studentAdmissionNumbers, toast]);
     
     const handleFindStudent = async () => {
         if (!searchTerm.trim() || !firestore) return;
@@ -116,7 +156,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
             } catch (error) {
                 console.error("An error occurred while trying to add the logo image to the PDF:", error);
-                console.error("Could not load logo for PDF. This might happen on local machines if the base64 string is too large or malformed.");
+                console.error("Could not load logo for PDF. This might happen if the base64 string is malformed.");
             }
         }
     
