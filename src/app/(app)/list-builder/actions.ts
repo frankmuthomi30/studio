@@ -29,6 +29,7 @@ export async function saveList(
       // Create new list
       const newListData = {
         title: list.title,
+        prepared_by: list.prepared_by || '',
         student_admission_numbers: [],
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),

@@ -57,6 +57,7 @@ export type CustomList = {
   id: string;
   title: string;
   student_admission_numbers: string[];
+  prepared_by?: string;
   created_at?: Timestamp;
   updated_at?: Timestamp;
   created_by?: string;

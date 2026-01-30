@@ -30,6 +30,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [isPending, startTransition] = useTransition();
 
     const [listTitle, setListTitle] = useState(list.title);
+    const [preparedBy, setPreparedBy] = useState(list.prepared_by || '');
     const [studentAdmissionNumbers, setStudentAdmissionNumbers] = useState<string[]>(list.student_admission_numbers || []);
     
     // Search states
@@ -88,6 +89,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             const result = await saveList({
                 id: list.id,
                 title: listTitle,
+                prepared_by: preparedBy,
                 student_admission_numbers: studentAdmissionNumbers,
             });
 
@@ -162,7 +164,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
         const signatureWidth = (pageWidth - margin * 3) / 2;
         doc.line(margin, footerY, margin + signatureWidth, footerY);
-        doc.text("Matron Agnes", margin, footerY + 5);
+        doc.text(preparedBy || "Matron Agnes", margin, footerY + 5);
 
         const stampX = pageWidth - margin - signatureWidth;
         const stampY = footerY - 15;
@@ -199,12 +201,18 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
             <Card>
                 <CardHeader><CardTitle>List Details</CardTitle></CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <Input 
                         placeholder="Enter list title..."
                         value={listTitle}
                         onChange={(e) => setListTitle(e.target.value)}
                         className="text-lg"
+                    />
+                     <Input 
+                        placeholder="Prepared by (e.g., Matron Agnes)"
+                        value={preparedBy}
+                        onChange={(e) => setPreparedBy(e.target.value)}
+                        className="text-sm"
                     />
                 </CardContent>
             </Card>
@@ -315,7 +323,7 @@ export default function ListBuilderClient() {
             if (result.success && result.id) {
                 toast({ title: 'Success!', description: `List '${newListTitle}' created.` });
                 // Immediately switch to editing the new list
-                setSelectedList({ id: result.id, title: newListTitle, student_admission_numbers: [] });
+                setSelectedList({ id: result.id, title: newListTitle, student_admission_numbers: [], prepared_by: '' });
                 setViewMode('edit');
                 setIsCreateDialogOpen(false);
                 setNewListTitle('');
@@ -359,7 +367,7 @@ export default function ListBuilderClient() {
                                     <CardTitle className="flex items-center gap-2">
                                         <Users className="text-primary"/> {list.title}
                                     </CardTitle>
-                                    <CardDescription>Contains {list.student_admission_numbers?.length || 0} students.</CardDescription>
+                                    <CardDescription>Contains {list.student_admission_numbers?.length || 0} students. Prepared by: {list.prepared_by || 'N/A'}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow" />
                                 <CardFooter className="flex justify-between items-center">
