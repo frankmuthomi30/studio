@@ -6,7 +6,7 @@ export default function ListBuilderPage() {
     <>
       <PageHeader
         title="Custom List Builder"
-        subtitle="Create and print custom lists of students for any purpose."
+        subtitle="Create, manage, and print custom lists of students for any purpose."
       />
       <div className="container mx-auto p-4 md:p-8">
         <ListBuilderClient />

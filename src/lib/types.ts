@@ -52,3 +52,12 @@ export type AttendanceSession = {
 export type StudentWithChoirStatus = Student & {
   choirMember?: Omit<ChoirMember, 'id' | 'admission_number' | 'first_name' | 'last_name' | 'class'>;
 };
+
+export type CustomList = {
+  id: string;
+  title: string;
+  student_admission_numbers: string[];
+  created_at?: Timestamp;
+  updated_at?: Timestamp;
+  created_by?: string;
+};

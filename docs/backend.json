@@ -202,6 +202,40 @@
         "recordedBy",
         "recordedAt"
       ]
+    },
+    "CustomList": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Custom List",
+      "type": "object",
+      "description": "A custom, user-defined list of students for specific purposes.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the custom list."
+        },
+        "student_admission_numbers": {
+          "type": "array",
+          "description": "An array of student admission numbers included in this list.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "created_at"
+      ]
     }
   },
   "auth": {
@@ -279,8 +313,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/custom_lists/{listId}",
+        "definition": {
+          "entityName": "CustomList",
+          "schema": {
+            "$ref": "#/backend/entities/CustomList"
+          },
+          "description": "Stores user-created custom student lists.",
+          "params": [
+            {
+              "name": "listId",
+              "description": "The unique ID for the custom list."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the school choir attendance management system with a focus on generating printable reports. Key considerations include: \n\n*   **Authorization Independence:** Each collection is designed to be accessed independently, avoiding `get()` calls in security rules.  Specifically, denormalization isn't needed for `students` and `choir_members` because access is managed on upload and membership. For attendance, access control will depend on the rules you implement on the UI; there is no owner or shared access scenario.\n*   **QAPs (Queryability and Performance):**  The segregation of data into distinct collections (`students`, `choir_members`, `choir_attendance`) simplifies queries and improves performance. The structure facilitates efficient `list` operations for attendance reports based on date ranges, classes, or terms.\n*   **Scalability:** The structure allows for efficient querying and report generation even with a large number of students and attendance records.\n*   **Report Generation:** The structure optimizes querying for report generation, allowing for easy retrieval of necessary data.\n\nTo enhance the design further, consider the following:\n\n*   **Indexes:** Define composite indexes for common queries, especially those used for report generation (e.g., queries based on date ranges and classes in `choir_attendance`).\n*   **Data Validation:** Implement client-side and server-side data validation to ensure data integrity, especially for mandatory fields.\n*   **Error Handling:** Implement robust error handling for file uploads and data processing to prevent data loss and ensure system stability.\n*   **Security Rules:**  Implement comprehensive security rules to protect data and ensure that only authorized users can access and modify data.\n\n"
+    "reasoning": "The Firestore structure is designed to support the school choir attendance management system with a focus on generating printable reports. Key considerations include: \n\n*   **Authorization Independence:** Each collection is designed to be accessed independently, avoiding `get()` calls in security rules.  Specifically, denormalization isn't needed for `students` and `choir_members` because access is managed on upload and membership. For attendance, access control will depend on the rules you implement on the UI; there is no owner or shared access scenario.\n*   **QAPs (Queryability and Performance):**  The segregation of data into distinct collections (`students`, `choir_members`, `choir_attendance`, `custom_lists`) simplifies queries and improves performance. The structure facilitates efficient `list` operations for attendance reports based on date ranges, classes, or terms.\n*   **Scalability:** The structure allows for efficient querying and report generation even with a large number of students and attendance records.\n*   **Report Generation:** The structure optimizes querying for report generation, allowing for easy retrieval of necessary data.\n\nTo enhance the design further, consider the following:\n\n*   **Indexes:** Define composite indexes for common queries, especially those used for report generation (e.g., queries based on date ranges and classes in `choir_attendance`).\n*   **Data Validation:** Implement client-side and server-side data validation to ensure data integrity, especially for mandatory fields.\n*   **Error Handling:** Implement robust error handling for file uploads and data processing to prevent data loss and ensure system stability.\n*   **Security Rules:**  Implement comprehensive security rules to protect data and ensure that only authorized users can access and modify data.\n\n"
   }
 }
