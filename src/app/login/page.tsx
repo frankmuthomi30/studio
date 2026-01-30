@@ -52,8 +52,6 @@ export default function LoginPage() {
       });
       // The auth guard will handle the redirect on user state change
     } catch (error: any) {
-      console.error('Login Error:', error);
-      
       let description = 'An unknown error occurred. Please check your credentials and try again.';
       
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
