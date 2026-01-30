@@ -43,7 +43,6 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
 
   const table = useReactTable({
     data,
@@ -54,11 +53,9 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
       columnFilters,
-      globalFilter,
     },
     initialState: {
         pagination: {
@@ -73,10 +70,10 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
     <div>
         <div className="flex items-center py-4 gap-2">
             <Input
-                placeholder="Filter by name or admission no..."
-                value={globalFilter ?? ''}
+                placeholder="Filter by name..."
+                value={(table.getColumn('fullName')?.getFilterValue() as string) ?? ''}
                 onChange={(event) =>
-                    setGlobalFilter(event.target.value)
+                    table.getColumn('fullName')?.setFilterValue(event.target.value)
                 }
                 className="max-w-sm"
             />
