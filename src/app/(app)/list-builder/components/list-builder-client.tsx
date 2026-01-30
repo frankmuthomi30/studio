@@ -3,7 +3,7 @@ import { useState, useMemo, useTransition } from 'react';
 import type { CustomList, Student } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, orderBy } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Check, Edit, ListPlus, Users, X } from 'lucide-react';
+import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,36 +107,44 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const margin = 15;
         let cursorY = margin;
         
-        // --- PDF Header ---
+        // --- PDF Header (Centered) ---
+        const logoWidth = 20;
+        const logoHeight = 20;
+        const logoX = (pageWidth - logoWidth) / 2;
+
         if (schoolLogo?.imageUrl) {
             try {
-                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
+                doc.addImage(schoolLogo.imageUrl, 'PNG', logoX, cursorY, logoWidth, logoHeight);
             } catch (error) {
                 console.error("An error occurred while trying to add the logo image to the PDF:", error);
-                 console.error("Could not load logo for PDF. This might happen on local machines if the base64 string is too large or malformed.");
+                console.error("Could not load logo for PDF. This might happen on local machines if the base64 string is too large or malformed.");
             }
         }
+        cursorY += logoHeight + 5;
     
         doc.setFont('times', 'bold');
         doc.setFontSize(20);
-        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
-    
+        doc.text("GATURA GIRLS", pageWidth / 2, cursorY, { align: 'center' });
+        cursorY += 7;
+
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
-        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
-        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
-        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
-        doc.text("0793328863", margin + 25, cursorY + 24);
+        const contactLine = "30-01013, Muranga.  |  gaturagirls@gmail.com  |  0793328863";
+        doc.text(contactLine, pageWidth / 2, cursorY, { align: 'center' });
+        cursorY += 4;
+        doc.text("https://stteresagaturagirls.sc.ke/", pageWidth / 2, cursorY, { align: 'center' });
+        cursorY += 8;
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text(listTitle, pageWidth - margin, cursorY + 15, { align: 'right' });
+        doc.text(listTitle, pageWidth / 2, cursorY, { align: 'center' });
+        cursorY += 6;
+
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("Custom Student List", pageWidth - margin, cursorY + 20, { align: 'right' });
+        doc.text("Custom Student List", pageWidth / 2, cursorY, { align: 'center' });
         doc.setTextColor(0);
-    
-        cursorY += 35;
+        cursorY += 15;
 
         (doc as any).autoTable({
             head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
