@@ -134,7 +134,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         doc.text(listTitle, pageWidth - margin, cursorY + 15, { align: 'right' });
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("Custom Student List", pageWidth - margin, cursorY + 20, { align: 'right' });
         doc.setTextColor(0);
 
         cursorY += 35;
