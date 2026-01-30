@@ -3,7 +3,7 @@ import { useState, useMemo, useTransition } from 'react';
 import type { CustomList, Student } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, orderBy } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Trash2, Users, X, ListPlus, Edit, Check } from 'lucide-react';
+import { Loader2, Plus, Printer, Search, Check, Edit, ListPlus, Users, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,24 +98,44 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         });
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const schoolLogoPath = '/images/school-logo.png';
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
         let cursorY = margin;
         
         // --- PDF Header ---
+        try {
+            const response = await fetch(schoolLogoPath);
+            if (response.ok) {
+                const blob = await response.blob();
+                const dataUrl = await new Promise<string | ArrayBuffer | null>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+                if (dataUrl) {
+                    doc.addImage(dataUrl as string, 'PNG', margin, cursorY, 20, 20);
+                }
+            } else {
+                 console.error("Could not load logo for PDF. Make sure the file exists at /public/images/school-logo.png.");
+            }
+        } catch (error) {
+            console.error("An error occurred while trying to load the logo for the PDF:", error);
+        }
+    
         doc.setFont('times', 'bold');
         doc.setFontSize(20);
-        doc.text("GATURA GIRLS", margin, cursorY + 7);
+        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
     
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
-        doc.text("30-01013, Muranga.", margin, cursorY + 12);
-        doc.text("gaturagirls@gmail.com", margin, cursorY + 16);
-        doc.text("https://stteresagaturagirls.sc.ke/", margin, cursorY + 20);
-        doc.text("0793328863", margin, cursorY + 24);
+        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
+        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
+        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
+        doc.text("0793328863", margin + 25, cursorY + 24);
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
