@@ -31,6 +31,15 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Diagnostic log to help the user verify the connected project ID.
+    if (auth?.app?.options?.projectId) {
+        console.log(
+            `DIAGNOSTIC INFO: The application is configured to connect to Firebase project: ${auth.app.options.projectId}`
+        );
+    }
+  }, [auth]);
+
+  useEffect(() => {
     if (!isUserLoading && user) {
       router.replace('/dashboard');
     }
@@ -67,7 +76,8 @@ export default function LoginPage() {
         title: 'Login Failed',
         description,
       });
-      setIsSigningIn(false);
+    } finally {
+        setIsSigningIn(false);
     }
   };
   
