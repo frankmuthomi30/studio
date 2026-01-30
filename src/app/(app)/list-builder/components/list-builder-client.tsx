@@ -84,17 +84,20 @@ export default function ListBuilderClient() {
         // --- PDF Header ---
         try {
             const response = await fetch(schoolLogoPath);
-            if (!response.ok) throw new Error('Logo not found');
-            const blob = await response.blob();
-            const dataUrl = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-            doc.addImage(dataUrl as string, 'PNG', margin, cursorY, 20, 20);
+            if (response.ok) {
+                const blob = await response.blob();
+                const dataUrl = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                doc.addImage(dataUrl, 'PNG', margin, cursorY, 20, 20);
+            } else {
+                 console.error("Could not load logo for PDF. Make sure the file exists at /public/images/school-logo.png.");
+            }
         } catch (error) {
-            console.error("Could not load logo for PDF. Make sure /public/images/school-logo.png exists.", error);
+            console.error("An error occurred while trying to load the logo for the PDF:", error);
         }
         
         doc.setFont('times', 'bold');
