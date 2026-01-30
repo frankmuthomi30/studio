@@ -1,13 +1,12 @@
 'use client';
 import { useState, useMemo } from 'react';
 import type { Student } from '@/lib/types';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Trash2, Users, X } from 'lucide-react';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { Loader2, Plus, Printer, Search, Trash2, Users, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -20,34 +19,47 @@ export default function ListBuilderClient() {
     const [customList, setCustomList] = useState<Student[]>([]);
     const [listTitle, setListTitle] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-
-    const studentsQuery = useMemoFirebase(() => 
-        !authLoading && firestore ? query(collection(firestore, 'students')) : null
-    , [firestore, authLoading]);
-    const { data: allStudents, isLoading: studentsLoading } = useCollection<Student>(studentsQuery);
+    const [foundStudent, setFoundStudent] = useState<Student | null>(null);
+    const [isFinding, setIsFinding] = useState(false);
+    const [findError, setFindError] = useState<string | null>(null);
 
     const customListIds = useMemo(() => new Set(customList.map(s => s.id)), [customList]);
 
-    const availableStudents = useMemo(() => {
-        if (!allStudents) return [];
-        const lowercasedFilter = searchTerm.toLowerCase();
-        const filtered = allStudents.filter(student => {
-            if (customListIds.has(student.id!)) return false;
-            const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
-            return fullName.includes(lowercasedFilter) || student.admission_number.includes(lowercasedFilter);
-        });
+    const handleFindStudent = async () => {
+        if (!searchTerm.trim() || !firestore) return;
+        setIsFinding(true);
+        setFoundStudent(null);
+        setFindError(null);
 
-        // Sort client-side to avoid complex Firestore queries
-        return filtered.sort((a, b) => {
-            const classComparison = (a.class || '').localeCompare(b.class || '');
-            if (classComparison !== 0) return classComparison;
-            return (a.first_name || '').localeCompare(b.first_name || '');
-        });
+        try {
+            const docRef = doc(firestore, 'students', searchTerm.trim());
+            const docSnap = await getDoc(docRef);
 
-    }, [allStudents, customListIds, searchTerm]);
+            if (docSnap.exists()) {
+                const studentData = { id: docSnap.id, ...docSnap.data() } as Student;
+                if (customListIds.has(studentData.id!)) {
+                    setFindError(`${studentData.first_name} is already in the list.`);
+                } else {
+                    setFoundStudent(studentData);
+                }
+            } else {
+                setFindError('No student found with that Admission Number.');
+            }
+        } catch (error) {
+            console.error("Error finding student:", error);
+            setFindError('An error occurred while searching.');
+        } finally {
+            setIsFinding(false);
+        }
+    };
 
     const handleAddStudent = (student: Student) => {
-        setCustomList(prev => [...prev, student]);
+        if (student && !customListIds.has(student.id!)) {
+            setCustomList(prev => [...prev, student]);
+            setFoundStudent(null);
+            setSearchTerm('');
+            setFindError(null);
+        }
     };
 
     const handleRemoveStudent = (studentId: string) => {
@@ -158,54 +170,55 @@ export default function ListBuilderClient() {
         doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
-    const isLoading = authLoading || studentsLoading;
+    const isLoading = authLoading;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>All Students</CardTitle>
-                        <CardDescription>Search for students and add them to your custom list.</CardDescription>
-                        <Input 
-                            placeholder="Search by name or admission number..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="max-w-sm mt-2"
-                        />
+                        <CardTitle>Find and Add Students</CardTitle>
+                        <CardDescription>Enter a student's Admission Number to find them and add them to your list.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        {isLoading ? (
-                            <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-                        ) : (
-                            <div className="rounded-md border max-h-[60vh] overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="sticky top-0 bg-muted z-10">
-                                        <TableRow>
-                                            <TableHead>Full Name</TableHead>
-                                            <TableHead>Admission No.</TableHead>
-                                            <TableHead>Class</TableHead>
-                                            <TableHead className="text-right">Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {availableStudents.length > 0 ? availableStudents.map(student => (
-                                            <TableRow key={student.id}>
-                                                <TableCell>{student.first_name} {student.last_name}</TableCell>
-                                                <TableCell>{student.admission_number}</TableCell>
-                                                <TableCell>{student.class}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button size="sm" variant="outline" onClick={() => handleAddStudent(student)}>
-                                                        <Plus className="mr-2 h-4 w-4" /> Add
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow><TableCell colSpan={4} className="h-24 text-center">No students found.</TableCell></TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-start gap-2">
+                            <Input 
+                                placeholder="Enter Admission No..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setFoundStudent(null);
+                                    setFindError(null);
+                                }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleFindStudent()}}
+                            />
+                            <Button onClick={handleFindStudent} disabled={isFinding}>
+                                {isFinding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                Find
+                            </Button>
+                        </div>
+                        
+                        {isFinding && <div className="flex justify-center items-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+                        
+                        {findError && <p className="text-sm text-destructive">{findError}</p>}
+
+                        {foundStudent && (
+                             <Card className="bg-muted">
+                                <CardHeader>
+                                    <CardTitle>Student Found</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold">{foundStudent.first_name} {foundStudent.last_name}</p>
+                                            <p className="text-sm text-muted-foreground">{foundStudent.admission_number} - {foundStudent.class}</p>
+                                        </div>
+                                        <Button onClick={() => handleAddStudent(foundStudent)}>
+                                            <Plus className="mr-2 h-4 w-4" /> Add to List
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         )}
                     </CardContent>
                 </Card>
@@ -240,7 +253,7 @@ export default function ListBuilderClient() {
                                     </Button>
                                 </div>
                             )) : (
-                                <p className="text-sm text-center text-muted-foreground py-4">No students added yet.</p>
+                                <p className="text-sm text-center text-muted-foreground py-4">No students added yet. Use the search to find and add students to the list.</p>
                             )}
                          </div>
                          <Separator />
