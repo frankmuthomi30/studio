@@ -1,31 +1,24 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-// This function is simplified to always initialize from the firebaseConfig object.
-// This ensures the application consistently connects to the intended Firebase project,
-// removing potential ambiguity from environment-specific initializations.
-export function initializeFirebase() {
-  if (!getApps().length) {
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
-  }
+// --- Singleton Initialization ---
+// This pattern, executed at the module's top level, ensures that Firebase is
+// initialized only once per application lifecycle.
+const firebaseApp: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
-}
+// Get Auth and Firestore services from the initialized app
+const auth: Auth = getAuth(firebaseApp);
+const firestore: Firestore = getFirestore(firebaseApp);
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
-  };
-}
+// --- Exports for the rest of the app ---
+// Export the initialized services as singletons for direct import elsewhere
+export { firebaseApp, auth, firestore };
 
+// Re-export the hooks and providers that will use these services via context
 export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';

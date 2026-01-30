@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth, useUser } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -45,7 +44,8 @@ export default function LoginPage() {
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
     setIsSigningIn(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      // Trim whitespace from inputs to prevent login errors due to extra spaces.
+      await signInWithEmailAndPassword(auth, values.email.trim(), values.password.trim());
       toast({
         title: 'Login Successful',
         description: "Welcome back! You're now being redirected to the dashboard.",
@@ -56,7 +56,6 @@ export default function LoginPage() {
       
       let description = 'An unknown error occurred. Please check your credentials and try again.';
       
-      // Firebase provides specific error codes for different auth failures.
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         description = 'The email or password you entered is incorrect. Please double-check your credentials.';
       } else if (error.code === 'auth/invalid-email') {
