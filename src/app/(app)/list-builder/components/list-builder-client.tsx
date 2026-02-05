@@ -3,11 +3,10 @@ import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { CustomList, Student } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, getDocs, orderBy } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check } from 'lucide-react';
+import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -15,6 +14,10 @@ import { useToast } from '@/hooks/use-toast';
 import DeleteListButton from './delete-list-button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { saveList } from '../actions';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Editor component for a single list
@@ -31,6 +34,9 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
     const [listTitle, setListTitle] = useState(list.title);
     const [preparedBy, setPreparedBy] = useState(list.prepared_by || '');
+    const [eventDate, setEventDate] = useState<Date | undefined>(
+        list.event_date ? list.event_date.toDate() : undefined
+    );
     const [studentAdmissionNumbers, setStudentAdmissionNumbers] = useState<string[]>(list.student_admission_numbers || []);
     
     // Search states
@@ -184,6 +190,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 title: listTitle,
                 prepared_by: preparedBy,
                 student_admission_numbers: studentAdmissionNumbers,
+                event_date: eventDate,
             });
 
             if (result.success) {
@@ -237,13 +244,22 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         doc.setFontSize(14);
         const titleLines = doc.splitTextToSize(listTitle, pageWidth - margin * 2);
         doc.text(titleLines, pageWidth / 2, 50, { align: 'center' });
-        const titleHeight = (doc.getTextDimensions(titleLines).h);
+        let titleHeight = (doc.getTextDimensions(titleLines).h);
+
+        if (eventDate) {
+            doc.setFont('times', 'normal');
+            doc.setFontSize(11);
+            doc.setTextColor(80);
+            doc.text(`Event Date: ${format(eventDate, 'EEEE, MMMM d, yyyy')}`, pageWidth / 2, 50 + titleHeight, { align: 'center' });
+            titleHeight += 6; // Add some space
+            doc.setTextColor(0);
+        }
 
         // --- Table ---
         (doc as any).autoTable({
             head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
             body: (studentsInList || []).sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, s.class, '']),
-            startY: 50 + titleHeight,
+            startY: 50 + titleHeight + 2,
             theme: 'grid',
             headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
             styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 10 },
@@ -261,13 +277,14 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
         // Check if there's enough space for the signatures below the table on the last page.
         // If not, add a new page for them.
-        if (finalTableY + signatureBlockHeight > pageHeight) {
+        if (finalTableY + signatureBlockHeight > pageHeight - pageBottomMargin) {
             doc.addPage();
             // Since we added a page, we must also draw the standard page footer on it.
             drawPageFooter({ pageNumber: pageCount + 1 });
+            finalTableY = 0; // Reset Y position for the new page
         }
         
-        const signatureY = pageHeight - signatureBlockHeight; // Position from bottom for consistency
+        const signatureY = pageHeight - signatureBlockHeight - pageBottomMargin + 15; // Position from bottom for consistency
 
         doc.setFont('times', 'normal');
         doc.setFontSize(10);
@@ -308,18 +325,49 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             <Card>
                 <CardHeader><CardTitle>List Details</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                    <Input 
-                        placeholder="Enter list title..."
-                        value={listTitle}
-                        onChange={(e) => setListTitle(e.target.value)}
-                        className="text-lg"
-                    />
-                     <Input 
-                        placeholder="Prepared by (e.g., Matron Agnes)"
-                        value={preparedBy}
-                        onChange={(e) => setPreparedBy(e.target.value)}
-                        className="text-sm"
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="list-title">List Title</Label>
+                            <Input 
+                                id="list-title"
+                                placeholder="Enter list title..."
+                                value={listTitle}
+                                onChange={(e) => setListTitle(e.target.value)}
+                                className="text-lg"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Event Date (Optional)</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={'outline'}
+                                        className={cn('w-full justify-start text-left font-normal', !eventDate && 'text-muted-foreground')}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {eventDate ? format(eventDate, 'PPP') : <span>Pick an event date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={eventDate}
+                                        onSelect={setEventDate}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="prepared-by">Prepared By</Label>
+                        <Input 
+                            id="prepared-by"
+                            placeholder="e.g., Matron Agnes"
+                            value={preparedBy}
+                            onChange={(e) => setPreparedBy(e.target.value)}
+                        />
+                    </div>
                 </CardContent>
             </Card>
 
@@ -483,7 +531,15 @@ export default function ListBuilderClient() {
                                     <CardTitle className="flex items-center gap-2">
                                         <Users className="text-primary"/> {list.title}
                                     </CardTitle>
-                                    <CardDescription>Contains {list.student_admission_numbers?.length || 0} students. Prepared by: {list.prepared_by || 'N/A'}</CardDescription>
+                                    <CardDescription>
+                                        Contains {list.student_admission_numbers?.length || 0} students. 
+                                        Prepared by: {list.prepared_by || 'N/A'}.
+                                        {list.event_date && (
+                                            <span className="block mt-1 text-xs font-medium text-primary">
+                                                Event on: {format(list.event_date.toDate(), 'PPP')}
+                                            </span>
+                                        )}
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow" />
                                 <CardFooter className="flex justify-between items-center">
