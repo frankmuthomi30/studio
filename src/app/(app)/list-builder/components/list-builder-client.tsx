@@ -201,32 +201,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
 
-        const drawFooter = (data: any) => {
-            const pageCount = doc.internal.getNumberOfPages ? doc.internal.getNumberOfPages() : (doc as any).internal.pages.length -1;
-            const currentPage = data.pageNumber;
-            const footerY = pageHeight - 45;
-
-            doc.setFont('times', 'normal');
-            doc.setFontSize(10);
-            doc.setLineWidth(0.2);
-
-            const signatureWidth = (pageWidth - margin * 3) / 2;
-            doc.line(margin, footerY, margin + signatureWidth, footerY);
-            doc.text(preparedBy || 'Matron Agnes', margin, footerY + 5);
-
-            const stampX = pageWidth - margin - signatureWidth;
-            const stampY = footerY - 15;
-            doc.setLineDashPattern([2, 2], 0);
-            doc.rect(stampX, stampY, signatureWidth, 20);
-            doc.setLineDashPattern([], 0);
-            doc.setTextColor(150);
-            doc.text('(School Stamp)', stampX + signatureWidth / 2, stampY + 12, { align: 'center' });
-            doc.setTextColor(0);
-
-            const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
-            const pageNumText = `Page ${currentPage} of ${pageCount}`;
+        // This function will run on EVERY page, drawing the page number and date.
+        const drawPageFooter = (data: any) => {
+            const pageCount = doc.internal.getNumberOfPages();
             doc.setFontSize(9);
             doc.setTextColor(150);
+            const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
+            const pageNumText = `Page ${data.pageNumber} of ${pageCount}`;
             doc.text(generatedOnText, margin, pageHeight - 10);
             doc.text(pageNumText, pageWidth - margin, pageHeight - 10, { align: 'right' });
         };
@@ -267,10 +248,43 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
             styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 10 },
             margin: { left: margin, right: margin },
-            didDrawPage: (data: any) => {
-                drawFooter(data);
-            }
+            didDrawPage: drawPageFooter, // Use the page-specific footer function here
         });
+        
+        // --- Signature and Stamp Block (ONLY ON LAST PAGE) ---
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setPage(pageCount); // Go to the last page
+
+        let finalTableY = (doc as any).lastAutoTable.finalY;
+        const signatureBlockHeight = 45; // Height needed for the signature/stamp area
+        const pageBottomMargin = 15;
+
+        // Check if there's enough space for the signatures below the table on the last page.
+        // If not, add a new page for them.
+        if (finalTableY + signatureBlockHeight > pageHeight) {
+            doc.addPage();
+            // Since we added a page, we must also draw the standard page footer on it.
+            drawPageFooter({ pageNumber: pageCount + 1 });
+        }
+        
+        const signatureY = pageHeight - signatureBlockHeight; // Position from bottom for consistency
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(10);
+        doc.setLineWidth(0.2);
+
+        const signatureWidth = (pageWidth - margin * 3) / 2;
+        doc.line(margin, signatureY, margin + signatureWidth, signatureY);
+        doc.text(preparedBy || 'Matron Agnes', margin, signatureY + 5);
+
+        const stampX = pageWidth - margin - signatureWidth;
+        const stampY = signatureY - 15;
+        doc.setLineDashPattern([2, 2], 0);
+        doc.rect(stampX, stampY, signatureWidth, 20);
+        doc.setLineDashPattern([], 0);
+        doc.setTextColor(150);
+        doc.text('(School Stamp)', stampX + signatureWidth / 2, stampY + 12, { align: 'center' });
+        doc.setTextColor(0);
 
         doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
