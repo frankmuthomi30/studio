@@ -195,83 +195,82 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     };
 
     const handleExportPdf = async () => {
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
-        let cursorY = margin;
-        
-        // --- PDF Header (Logo Left) ---
+
+        const drawFooter = (data: any) => {
+            const pageCount = doc.internal.getNumberOfPages ? doc.internal.getNumberOfPages() : (doc as any).internal.pages.length -1;
+            const currentPage = data.pageNumber;
+            const footerY = pageHeight - 45;
+
+            doc.setFont('times', 'normal');
+            doc.setFontSize(10);
+            doc.setLineWidth(0.2);
+
+            const signatureWidth = (pageWidth - margin * 3) / 2;
+            doc.line(margin, footerY, margin + signatureWidth, footerY);
+            doc.text(preparedBy || 'Matron Agnes', margin, footerY + 5);
+
+            const stampX = pageWidth - margin - signatureWidth;
+            const stampY = footerY - 15;
+            doc.setLineDashPattern([2, 2], 0);
+            doc.rect(stampX, stampY, signatureWidth, 20);
+            doc.setLineDashPattern([], 0);
+            doc.setTextColor(150);
+            doc.text('(School Stamp)', stampX + signatureWidth / 2, stampY + 12, { align: 'center' });
+            doc.setTextColor(0);
+
+            const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
+            const pageNumText = `Page ${currentPage} of ${pageCount}`;
+            doc.setFontSize(9);
+            doc.setTextColor(150);
+            doc.text(generatedOnText, margin, pageHeight - 10);
+            doc.text(pageNumText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        };
+
+        // --- PDF Header ---
         if (schoolLogo?.imageUrl) {
             try {
-                // Use the base64 string directly
-                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
+                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, 15, 20, 20);
             } catch (error) {
-                console.error("An error occurred while trying to add the logo image to the PDF:", error);
-                // Don't re-throw, just log it. The PDF can generate without the logo.
+                console.error("Error adding logo image to PDF:", error);
             }
         }
-    
         doc.setFont('times', 'bold');
         doc.setFontSize(20);
-        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
-    
+        doc.text('GATURA GIRLS', margin + 25, 15 + 7);
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
-        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
-        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
-        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
-        doc.text("0793328863", margin + 25, cursorY + 24);
+        doc.text('30-01013, Muranga.', margin + 25, 15 + 12);
+        doc.text('gaturagirls@gmail.com', margin + 25, 15 + 16);
+        doc.text('https://stteresagaturagirls.sc.ke/', margin + 25, 15 + 20);
+        doc.text('0793328863', margin + 25, 15 + 24);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 15 + 28, pageWidth - margin, 15 + 28);
         
+        // --- Title (below header, with wrapping) ---
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
-        doc.text(listTitle, pageWidth - margin, cursorY + 15, { align: 'right' });
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.setTextColor(0);
+        const titleLines = doc.splitTextToSize(listTitle, pageWidth - margin * 2);
+        doc.text(titleLines, pageWidth / 2, 50, { align: 'center' });
+        const titleHeight = (doc.getTextDimensions(titleLines).h);
 
-        cursorY += 35;
-
+        // --- Table ---
         (doc as any).autoTable({
             head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
-            body: (studentsInList || []).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, s.class, '']),
-            startY: cursorY,
+            body: (studentsInList || []).sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, s.class, '']),
+            startY: 50 + titleHeight,
             theme: 'grid',
             headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
-            styles: { font: 'times', fontStyle: 'normal', cellPadding: 2 },
-            margin: { left: margin, right: margin }
+            styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 10 },
+            margin: { left: margin, right: margin },
+            didDrawPage: (data: any) => {
+                drawFooter(data);
+            }
         });
-
-        const finalY = (doc as any).lastAutoTable.finalY;
-
-        let footerY = finalY + 40;
-        if (footerY > pageHeight - 50) {
-            doc.addPage();
-            footerY = margin;
-        }
-
-        doc.setFont('times', 'normal');
-        doc.setFontSize(10);
-        doc.setLineWidth(0.2);
-
-        const signatureWidth = (pageWidth - margin * 3) / 2;
-        doc.line(margin, footerY, margin + signatureWidth, footerY);
-        doc.text(preparedBy || "Matron Agnes", margin, footerY + 5);
-
-        const stampX = pageWidth - margin - signatureWidth;
-        const stampY = footerY - 15;
-        doc.setLineDashPattern([2, 2], 0);
-        doc.rect(stampX, stampY, signatureWidth, 20);
-        doc.setLineDashPattern([], 0);
-        doc.setTextColor(150);
-        doc.text("(School Stamp)", stampX + signatureWidth / 2, stampY + 12, { align: 'center' });
-        doc.setTextColor(0);
-
-        const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
-        doc.setFontSize(9);
-        doc.setTextColor(150);
-        doc.text(generatedOnText, pageWidth / 2, pageHeight - 15, { align: 'center' });
 
         doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
