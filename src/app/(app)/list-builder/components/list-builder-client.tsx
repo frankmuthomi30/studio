@@ -274,10 +274,10 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         let finalTableY = (doc as any).lastAutoTable.finalY;
         let signatureStartY = 0;
 
-        const signatureBlockHeight = 25; // Approx height of the signature content
-        const gapBelowTable = 10; // The space between the table and the signature block
+        const signatureBlockHeight = 28; // Approx height of the signature content
+        const gapBelowTable = 8; // The space between the table and the signature block
         const totalSpaceNeeded = signatureBlockHeight + gapBelowTable;
-        const pageBottomMargin = 25; // Space for the page footer text
+        const pageBottomMargin = 15; // Space for the page footer text
 
         // Check if there's enough space for the signatures below the table on the current last page.
         if (finalTableY + totalSpaceNeeded > pageHeight - pageBottomMargin) {
@@ -286,7 +286,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             drawPageFooter({ pageNumber: doc.internal.getNumberOfPages() });
             signatureStartY = margin; // Start at the top of the new page
         } else {
-            signatureStartY = finalTableY + gapBelowTable; // Start 10mm below the table
+            signatureStartY = finalTableY + gapBelowTable; // Start below the table
         }
         
         doc.setFont('times', 'normal');
