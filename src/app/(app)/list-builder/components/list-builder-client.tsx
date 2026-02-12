@@ -267,35 +267,39 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             didDrawPage: drawPageFooter, // Use the page-specific footer function here
         });
         
-        // --- Signature and Stamp Block (ONLY ON LAST PAGE) ---
-        const pageCount = doc.internal.getNumberOfPages();
-        doc.setPage(pageCount); // Go to the last page
+        // --- Signature and Stamp Block (Dynamically placed on the last page) ---
+        const finalPageNumber = doc.internal.getNumberOfPages();
+        doc.setPage(finalPageNumber); // Go to the last page
 
         let finalTableY = (doc as any).lastAutoTable.finalY;
-        const signatureBlockHeight = 45; // Height needed for the signature/stamp area
-        const pageBottomMargin = 15;
+        let signatureStartY = 0;
 
-        // Check if there's enough space for the signatures below the table on the last page.
-        // If not, add a new page for them.
+        const signatureBlockHeight = 40; // Approx height needed for the signature/stamp area
+        const pageBottomMargin = 25; // Space for the page footer text
+
+        // Check if there's enough space for the signatures below the table on the current last page.
         if (finalTableY + signatureBlockHeight > pageHeight - pageBottomMargin) {
             doc.addPage();
             // Since we added a page, we must also draw the standard page footer on it.
-            drawPageFooter({ pageNumber: pageCount + 1 });
-            finalTableY = 0; // Reset Y position for the new page
+            drawPageFooter({ pageNumber: doc.internal.getNumberOfPages() });
+            signatureStartY = margin; // Start at the top of the new page
+        } else {
+            signatureStartY = finalTableY + 15; // Start 15mm below the table
         }
         
-        const signatureY = pageHeight - signatureBlockHeight - pageBottomMargin + 15; // Position from bottom for consistency
-
         doc.setFont('times', 'normal');
         doc.setFontSize(10);
         doc.setLineWidth(0.2);
 
         const signatureWidth = (pageWidth - margin * 3) / 2;
-        doc.line(margin, signatureY, margin + signatureWidth, signatureY);
-        doc.text(preparedBy || 'Matron Agnes', margin, signatureY + 5);
 
+        // Draw first signature line and text based on the calculated signatureStartY
+        doc.line(margin, signatureStartY + 20, margin + signatureWidth, signatureStartY + 20);
+        doc.text(preparedBy || 'Matron Agnes', margin, signatureStartY + 25);
+
+        // Draw stamp area, also based on signatureStartY
         const stampX = pageWidth - margin - signatureWidth;
-        const stampY = signatureY - 15;
+        const stampY = signatureStartY; // Align top of stamp with top of signature area
         doc.setLineDashPattern([2, 2], 0);
         doc.rect(stampX, stampY, signatureWidth, 20);
         doc.setLineDashPattern([], 0);
