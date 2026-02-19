@@ -7,7 +7,7 @@ import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, Calend
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import jsPDF from 'jspdf';
+import jsPDF from 'jsPDF';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -44,13 +44,8 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     
     // Initialize sections with legacy support
     const [sections, setSections] = useState<ListSection[]>(() => {
-        // If the new sections structure exists, use it
         if (list.sections && list.sections.length > 0) return list.sections;
-        
-        // Check for legacy students array (before sub-sections update)
         const legacyStudents = list.student_admission_numbers || [];
-        
-        // Fallback to a single default section containing legacy data
         return [{ 
             id: 'default', 
             title: 'Main List', 
@@ -188,7 +183,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 }
             } else {
                  setFindError('No student found with that Admission Number or Name.');
-                 // If it looks like an admission number (numeric), offer quick add
                  if (/^\d+$/.test(term)) {
                     setShowQuickAdd(true);
                  }
@@ -222,19 +216,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
         try {
             await setDoc(studentRef, newStudent);
-            
-            // Add to UI
             setStudentsMap(prev => {
                 const next = new Map(prev);
                 next.set(newStudent.admission_number, newStudent);
                 return next;
             });
-
             handleAddStudent(newStudent, activeSectionId);
-            
             toast({ title: 'Student Created', description: `${quickFirstName} has been added to the database and your list.` });
-            
-            // Reset
             setQuickFirstName('');
             setQuickLastName('');
             setQuickClass('');
@@ -323,12 +311,12 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
         const drawPageFooter = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
-            doc.setFontSize(9);
+            doc.setFontSize(8);
             doc.setTextColor(150);
             const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
             const pageNumText = `Page ${data.pageNumber} of ${pageCount}`;
-            doc.text(generatedOnText, margin, pageHeight - 10);
-            doc.text(pageNumText, pageWidth - margin, pageHeight - 10, { align: 'right' });
+            doc.text(generatedOnText, margin, pageHeight - 8);
+            doc.text(pageNumText, pageWidth - margin, pageHeight - 8, { align: 'right' });
         };
 
         // --- PDF Header ---
@@ -338,32 +326,50 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             } catch (error) { console.error(error); }
         }
         doc.setFont('times', 'bold');
-        doc.setFontSize(20);
+        doc.setFontSize(18);
         doc.text('GATURA GIRLS', margin + 25, 15 + 7);
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
         doc.text('30-01013, Muranga.', margin + 25, 15 + 12);
         doc.text('gaturagirls@gmail.com', margin + 25, 15 + 16);
-        doc.text('https://stteresagaturagirls.sc.ke/', margin + 25, 15 + 20);
-        doc.text('0793328863', margin + 25, 15 + 24);
+        doc.text('0793328863', margin + 25, 15 + 20);
+
+        // --- NEW: Official Stamp Box at Top Right ---
+        const stampBoxWidth = 50;
+        const stampBoxHeight = 25;
+        const stampX = pageWidth - margin - stampBoxWidth;
+        const stampY = 15;
+        
+        doc.setLineWidth(0.2);
+        doc.rect(stampX, stampY, stampBoxWidth, stampBoxHeight);
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text('OFFICIAL SCHOOL STAMP', stampX + stampBoxWidth / 2, stampY + 6, { align: 'center' });
+        doc.text('Sign & Date Inside', stampX + stampBoxWidth / 2, stampY + 14, { align: 'center' });
+        
+        doc.setTextColor(0);
+        doc.setFontSize(9);
+        doc.setFont('times', 'bold');
+        doc.text(`By: ${preparedBy || 'Matron'}`, stampX, stampY + stampBoxHeight + 5);
+
         doc.setLineWidth(0.5);
-        doc.line(margin, 15 + 28, pageWidth - margin, 15 + 28);
+        doc.line(margin, 46, pageWidth - margin, 46);
         
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
         const titleLines = doc.splitTextToSize(listTitle, pageWidth - margin * 2);
-        doc.text(titleLines, pageWidth / 2, 50, { align: 'center' });
-        let currentY = 50 + (doc.getTextDimensions(titleLines).h);
+        doc.text(titleLines, pageWidth / 2, 55, { align: 'center' });
+        let currentY = 55 + (doc.getTextDimensions(titleLines).h);
 
         if (eventDate) {
             doc.setFont('times', 'normal');
             doc.setFontSize(11);
             doc.setTextColor(80);
             doc.text(`Event Date: ${format(eventDate, 'EEEE, MMMM d, yyyy')}`, pageWidth / 2, currentY + 4, { align: 'center' });
-            currentY += 10;
+            currentY += 12;
             doc.setTextColor(0);
         } else {
-            currentY += 4;
+            currentY += 6;
         }
 
         // --- Render Sections ---
@@ -374,13 +380,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             
             if (sectionStudents.length === 0) continue;
 
-            if (currentY > pageHeight - 40) {
+            if (currentY > pageHeight - 30) {
                 doc.addPage();
                 currentY = 20;
             }
 
             doc.setFont('times', 'bold');
-            doc.setFontSize(12);
+            doc.setFontSize(11);
             doc.text(section.title, margin, currentY);
             currentY += 4;
 
@@ -390,48 +396,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 startY: currentY,
                 theme: 'grid',
                 headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
-                styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 10 },
+                styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 9.5 },
                 margin: { left: margin, right: margin },
                 didDrawPage: drawPageFooter,
             });
 
             currentY = (doc as any).lastAutoTable.finalY + 10;
         }
-        
-        // --- Signature and Stamp Block ---
-        const finalPageNumber = doc.internal.getNumberOfPages();
-        doc.setPage(finalPageNumber);
-
-        const signatureBlockHeight = 28;
-        const gapBelowTable = 8;
-        const totalSpaceNeeded = signatureBlockHeight + gapBelowTable;
-        const pageBottomMargin = 15;
-
-        let signatureStartY;
-        if (currentY + totalSpaceNeeded > pageHeight - pageBottomMargin) {
-            doc.addPage();
-            drawPageFooter({ pageNumber: doc.internal.getNumberOfPages() });
-            signatureStartY = 20;
-        } else {
-            signatureStartY = currentY;
-        }
-        
-        doc.setFont('times', 'normal');
-        doc.setFontSize(10);
-        doc.setLineWidth(0.2);
-        const signatureWidth = (pageWidth - margin * 3) / 2;
-
-        doc.line(margin, signatureStartY + 15, margin + signatureWidth, signatureStartY + 15);
-        doc.text(preparedBy || 'Matron Agnes', margin, signatureStartY + 20);
-
-        const stampX = pageWidth - margin - signatureWidth;
-        const stampY = signatureStartY;
-        doc.setLineDashPattern([2, 2], 0);
-        doc.rect(stampX, stampY, signatureWidth, 15);
-        doc.setLineDashPattern([], 0);
-        doc.setTextColor(150);
-        doc.text('(School Stamp)', stampX + signatureWidth / 2, stampY + 9, { align: 'center' });
-        doc.setTextColor(0);
 
         doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}.pdf`);
     };
@@ -480,7 +451,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="prepared-by">Prepared By</Label>
+                        <Label htmlFor="prepared-by">Prepared By (Signature Name)</Label>
                         <Input 
                             id="prepared-by"
                             placeholder="e.g., Matron Agnes"
@@ -536,9 +507,9 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                                     </CardHeader>
                                     <CardContent className="p-3 pt-0 space-y-3">
                                         <div className="grid gap-2">
-                                            <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} bs-size="sm" />
-                                            <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} bs-size="sm" />
-                                            <Input placeholder="Class (e.g. Form 4)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} bs-size="sm" />
+                                            <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} />
+                                            <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} />
+                                            <Input placeholder="Class (e.g. Form 4)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} />
                                         </div>
                                         <div className="flex gap-2">
                                             <Button size="sm" className="flex-1" onClick={handleQuickAdd} disabled={isQuickAdding}>
@@ -572,7 +543,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
-                    {sections.map((section, idx) => (
+                    {sections.map((section) => (
                         <Card key={section.id} className={cn(activeSectionId === section.id && "ring-2 ring-primary")}>
                             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                                 <div className="flex-grow mr-4">
