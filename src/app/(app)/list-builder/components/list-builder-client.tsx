@@ -309,6 +309,10 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
 
+        const totalStudentsCount = allAdmissionNumbers.length;
+        // Determine if we use the header stamp or the bottom stamp
+        const useHeaderStamp = totalStudentsCount >= 23 && totalStudentsCount <= 25;
+
         const drawPageFooter = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
             doc.setFontSize(8);
@@ -334,23 +338,25 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         doc.text('gaturagirls@gmail.com', margin + 25, 15 + 16);
         doc.text('0793328863', margin + 25, 15 + 20);
 
-        // --- NEW: Official Stamp Box at Top Right ---
-        const stampBoxWidth = 50;
-        const stampBoxHeight = 25;
-        const stampX = pageWidth - margin - stampBoxWidth;
-        const stampY = 15;
-        
-        doc.setLineWidth(0.2);
-        doc.rect(stampX, stampY, stampBoxWidth, stampBoxHeight);
-        doc.setFontSize(7);
-        doc.setTextColor(150);
-        doc.text('OFFICIAL SCHOOL STAMP', stampX + stampBoxWidth / 2, stampY + 6, { align: 'center' });
-        doc.text('Sign & Date Inside', stampX + stampBoxWidth / 2, stampY + 14, { align: 'center' });
-        
-        doc.setTextColor(0);
-        doc.setFontSize(9);
-        doc.setFont('times', 'bold');
-        doc.text(`By: ${preparedBy || 'Matron'}`, stampX, stampY + stampBoxHeight + 5);
+        // --- Official Stamp Box at Top Right (Conditional) ---
+        if (useHeaderStamp) {
+            const stampBoxWidth = 50;
+            const stampBoxHeight = 25;
+            const stampX = pageWidth - margin - stampBoxWidth;
+            const stampY = 15;
+            
+            doc.setLineWidth(0.2);
+            doc.rect(stampX, stampY, stampBoxWidth, stampBoxHeight);
+            doc.setFontSize(7);
+            doc.setTextColor(150);
+            doc.text('OFFICIAL SCHOOL STAMP', stampX + stampBoxWidth / 2, stampY + 6, { align: 'center' });
+            doc.text('Sign & Date Inside', stampX + stampBoxWidth / 2, stampY + 14, { align: 'center' });
+            
+            doc.setTextColor(0);
+            doc.setFontSize(9);
+            doc.setFont('times', 'bold');
+            doc.text(`By: ${preparedBy || 'Matron'}`, stampX, stampY + stampBoxHeight + 5);
+        }
 
         doc.setLineWidth(0.5);
         doc.line(margin, 46, pageWidth - margin, 46);
@@ -402,6 +408,36 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             });
 
             currentY = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        // --- Render Bottom Stamp (If not using header stamp) ---
+        if (!useHeaderStamp) {
+            const stampBoxWidth = 55;
+            const stampBoxHeight = 30;
+            
+            // Check if there is enough space on the current page for the signature block
+            // We need space for the "Prepared by" line + the stamp box
+            if (currentY > pageHeight - (stampBoxHeight + 20)) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.setLineWidth(0.2);
+            doc.setFontSize(10);
+            doc.setFont('times', 'bold');
+            doc.text(`Prepared By: ${preparedBy || 'Matron'}`, margin, currentY + 5);
+            
+            const stampX = pageWidth - margin - stampBoxWidth;
+            doc.rect(stampX, currentY, stampBoxWidth, stampBoxHeight);
+            doc.setFontSize(7);
+            doc.setTextColor(150);
+            doc.text('OFFICIAL SCHOOL STAMP', stampX + stampBoxWidth / 2, currentY + 8, { align: 'center' });
+            
+            doc.setTextColor(0);
+            doc.setLineWidth(0.2);
+            doc.line(margin, currentY + 22, margin + 50, currentY + 22);
+            doc.setFontSize(8);
+            doc.text('Signature & Date', margin, currentY + 26);
         }
 
         doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}.pdf`);
