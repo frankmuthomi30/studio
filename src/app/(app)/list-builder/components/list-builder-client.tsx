@@ -42,10 +42,20 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         list.event_date ? list.event_date.toDate() : undefined
     );
     
-    // Initialize sections
+    // Initialize sections with legacy support
     const [sections, setSections] = useState<ListSection[]>(() => {
+        // If the new sections structure exists, use it
         if (list.sections && list.sections.length > 0) return list.sections;
-        return [{ id: 'default', title: 'Main List', student_admission_numbers: [] }];
+        
+        // Check for legacy students array (before sub-sections update)
+        const legacyStudents = list.student_admission_numbers || [];
+        
+        // Fallback to a single default section containing legacy data
+        return [{ 
+            id: 'default', 
+            title: 'Main List', 
+            student_admission_numbers: legacyStudents 
+        }];
     });
 
     const [activeSectionId, setActiveSectionId] = useState<string>(sections[0].id);

@@ -65,6 +65,7 @@ export type CustomList = {
   prepared_by?: string;
   event_date?: Timestamp;
   sections: ListSection[];
+  student_admission_numbers?: string[]; // Legacy support for older lists
   created_at?: Timestamp;
   updated_at?: Timestamp;
   created_by?: string;
