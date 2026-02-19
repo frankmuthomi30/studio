@@ -2,8 +2,8 @@
 import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { CustomList, Student, ListSection } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, getDoc, getDocs, orderBy } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { collection, query, where, doc, getDoc, getDocs, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon, Trash2, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Editor component for a single list
@@ -30,6 +32,7 @@ type ListEditorProps = {
 
 function ListEditor({ list, onBack }: ListEditorProps) {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
 
@@ -39,7 +42,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         list.event_date ? list.event_date.toDate() : undefined
     );
     
-    // Initialize sections. Support legacy lists by creating a default section if none exist.
+    // Initialize sections
     const [sections, setSections] = useState<ListSection[]>(() => {
         if (list.sections && list.sections.length > 0) return list.sections;
         return [{ id: 'default', title: 'Main List', student_admission_numbers: [] }];
@@ -52,6 +55,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [foundStudents, setFoundStudents] = useState<Student[] | null>(null);
     const [isFinding, setIsFinding] = useState(false);
     const [findError, setFindError] = useState<string | null>(null);
+    const [showQuickAdd, setShowQuickAdd] = useState(false);
+
+    // Quick Add Form States
+    const [quickFirstName, setQuickFirstName] = useState('');
+    const [quickLastName, setQuickLastName] = useState('');
+    const [quickClass, setQuickClass] = useState('');
+    const [isQuickAdding, setIsQuickAdding] = useState(false);
 
     // Fetch student details for all sections
     const allAdmissionNumbers = useMemo(() => {
@@ -112,6 +122,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         setIsFinding(true);
         setFoundStudents(null);
         setFindError(null);
+        setShowQuickAdd(false);
         const term = searchTerm.trim();
         const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1);
     
@@ -167,12 +178,67 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 }
             } else {
                  setFindError('No student found with that Admission Number or Name.');
+                 // If it looks like an admission number (numeric), offer quick add
+                 if (/^\d+$/.test(term)) {
+                    setShowQuickAdd(true);
+                 }
             }
         } catch (error) {
             setFindError('An error occurred while searching.');
             console.error(error);
         } finally {
             setIsFinding(false);
+        }
+    };
+
+    const handleQuickAdd = async () => {
+        if (!firestore || !user) return;
+        if (!quickFirstName || !quickLastName || !quickClass) {
+            toast({ variant: 'destructive', title: 'Missing Info', description: 'Please fill in all student details.' });
+            return;
+        }
+
+        setIsQuickAdding(true);
+        const newStudent: Student = {
+            admission_number: searchTerm.trim(),
+            first_name: quickFirstName,
+            last_name: quickLastName,
+            class: quickClass,
+            uploaded_at: serverTimestamp() as any,
+            uploaded_by: user.uid
+        };
+
+        const studentRef = doc(firestore, 'students', newStudent.admission_number);
+
+        try {
+            await setDoc(studentRef, newStudent);
+            
+            // Add to UI
+            setStudentsMap(prev => {
+                const next = new Map(prev);
+                next.set(newStudent.admission_number, newStudent);
+                return next;
+            });
+
+            handleAddStudent(newStudent, activeSectionId);
+            
+            toast({ title: 'Student Created', description: `${quickFirstName} has been added to the database and your list.` });
+            
+            // Reset
+            setQuickFirstName('');
+            setQuickLastName('');
+            setQuickClass('');
+            setShowQuickAdd(false);
+            setSearchTerm('');
+        } catch (error: any) {
+            const contextualError = new FirestorePermissionError({
+                path: studentRef.path,
+                operation: 'create',
+                requestResourceData: newStudent,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+        } finally {
+            setIsQuickAdding(false);
         }
     };
 
@@ -298,7 +364,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             
             if (sectionStudents.length === 0) continue;
 
-            // Check for space for section header
             if (currentY > pageHeight - 40) {
                 doc.addPage();
                 currentY = 20;
@@ -434,13 +499,47 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                                 <Input 
                                     placeholder="Adm No. or Name..."
                                     value={searchTerm}
-                                    onChange={(e) => { setSearchTerm(e.target.value); setFoundStudents(null); setFindError(null); }}
+                                    onChange={(e) => { setSearchTerm(e.target.value); setFoundStudents(null); setFindError(null); setShowQuickAdd(false); }}
                                     onKeyDown={(e) => { if (e.key === 'Enter') handleFindStudent()}}
                                 />
                                 <Button onClick={handleFindStudent} disabled={isFinding} size="icon"><Search/></Button>
                             </div>
+                            
                             {isFinding && <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
-                            {findError && <p className="text-sm text-destructive">{findError}</p>}
+                            
+                            {findError && (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-destructive">{findError}</p>
+                                    {showQuickAdd && (
+                                        <Button variant="outline" className="w-full" onClick={() => setShowQuickAdd(true)}>
+                                            <Plus className="mr-2 h-4 w-4" /> Add "{searchTerm}" Manually
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+
+                            {showQuickAdd && (
+                                <Card className="border-primary/20 bg-primary/5">
+                                    <CardHeader className="p-3">
+                                        <CardTitle className="text-sm">Quick Add Student</CardTitle>
+                                        <CardDescription className="text-xs">This will add the student to the database.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-3 pt-0 space-y-3">
+                                        <div className="grid gap-2">
+                                            <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} bs-size="sm" />
+                                            <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} bs-size="sm" />
+                                            <Input placeholder="Class (e.g. Form 4)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} bs-size="sm" />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button size="sm" className="flex-1" onClick={handleQuickAdd} disabled={isQuickAdding}>
+                                                {isQuickAdding ? <Loader2 className="animate-spin" /> : <UserPlus className="mr-2" />} Create & Add
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
                             {foundStudents && foundStudents.length > 0 && (
                                 <div className="p-3 bg-muted rounded-md text-sm space-y-3 mt-2">
                                     <p className="font-semibold">Found {foundStudents.length}:</p>
