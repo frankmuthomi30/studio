@@ -68,7 +68,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [quickClass, setQuickClass] = useState('');
     const [isQuickAdding, setIsQuickAdding] = useState(false);
 
-    // Fetch student details for all sections
+    // Fetch student details for all sections (unique IDs for fetching)
     const allAdmissionNumbers = useMemo(() => {
         return Array.from(new Set(sections.flatMap(s => s.student_admission_numbers)));
     }, [sections]);
@@ -175,11 +175,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             }
     
             if (found.length > 0) {
-                const newResults = found.filter(s => !allAdmissionNumbers.includes(s.admission_number));
+                const activeSection = sections.find(s => s.id === activeSectionId);
+                const newResults = found.filter(s => !activeSection?.student_admission_numbers.includes(s.admission_number));
+                
                 if (newResults.length > 0) {
                     setFoundStudents(newResults);
                 } else {
-                     setFindError('All matching students are already in the list.');
+                     setFindError('Matching students are already in this specific section.');
                 }
             } else {
                  setFindError('No student found with that Admission Number or Name.');
@@ -243,6 +245,8 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const handleAddStudent = (student: Student, sectionId: string) => {
         setSections(prev => prev.map(s => {
             if (s.id === sectionId) {
+                // Prevent duplicate in the SAME section
+                if (s.student_admission_numbers.includes(student.admission_number)) return s;
                 return { ...s, student_admission_numbers: [...s.student_admission_numbers, student.admission_number] };
             }
             return s;
@@ -309,9 +313,10 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
 
-        const totalStudentsCount = allAdmissionNumbers.length;
-        // Determine if we use the header stamp or the bottom stamp
-        const useHeaderStamp = totalStudentsCount >= 23 && totalStudentsCount <= 25;
+        // Count TOTAL rows across all sections to determine stamp placement
+        const totalRowsCount = sections.reduce((acc, s) => acc + s.student_admission_numbers.length, 0);
+        // Header stamp used specifically for 23-25 total rows to ensure one-page fit
+        const useHeaderStamp = totalRowsCount >= 23 && totalRowsCount <= 25;
 
         const drawPageFooter = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
@@ -415,8 +420,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             const stampBoxWidth = 55;
             const stampBoxHeight = 30;
             
-            // Check if there is enough space on the current page for the signature block
-            // We need space for the "Prepared by" line + the stamp box
+            // Check for space on current page
             if (currentY > pageHeight - (stampBoxHeight + 20)) {
                 doc.addPage();
                 currentY = 20;
@@ -453,7 +457,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                     <Button onClick={handleSaveList} disabled={isPending}>
                         {isPending ? <Loader2 className="animate-spin" /> : <Check className="mr-2"/>} Save
                     </Button>
-                    <Button variant="secondary" onClick={handleExportPdf} disabled={allAdmissionNumbers.length === 0}>
+                    <Button variant="secondary" onClick={handleExportPdf} disabled={sections.every(s => s.student_admission_numbers.length === 0)}>
                         <Printer className="mr-2" /> Print PDF
                     </Button>
                 </div>
@@ -606,7 +610,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                                         section.student_admission_numbers.map((adm, sIdx) => {
                                             const student = studentsMap.get(adm);
                                             return (
-                                                <div key={adm} className="flex items-center justify-between p-2 text-sm hover:bg-muted border-b last:border-0">
+                                                <div key={`${section.id}-${adm}-${sIdx}`} className="flex items-center justify-between p-2 text-sm hover:bg-muted border-b last:border-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs text-muted-foreground w-4">{sIdx + 1}.</span>
                                                         <div>
