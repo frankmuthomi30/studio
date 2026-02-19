@@ -7,7 +7,7 @@ import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, Calend
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import jsPDF from 'jsPDF';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
