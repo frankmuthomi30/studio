@@ -315,8 +315,12 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
         // Count TOTAL rows across all sections to determine stamp placement
         const totalRowsCount = sections.reduce((acc, s) => acc + s.student_admission_numbers.length, 0);
-        // Header stamp used specifically for 23-25 total rows to ensure one-page fit
-        const useHeaderStamp = totalRowsCount >= 23 && totalRowsCount <= 25;
+        const sectionCount = sections.length;
+        
+        // Header stamp logic:
+        // 1. Total rows exactly 23-25 (one-page space optimization)
+        // 2. ONLY if there are 5 or fewer sub-sections (requested rule)
+        const useHeaderStamp = (totalRowsCount >= 23 && totalRowsCount <= 25) && (sectionCount <= 5);
 
         const drawPageFooter = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
