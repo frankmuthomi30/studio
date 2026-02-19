@@ -507,88 +507,98 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 space-y-4">
-                    <Card>
-                        <CardHeader><CardTitle>Add Student</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Target Section</Label>
-                                <Select value={activeSectionId} onValueChange={setActiveSectionId}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {sections.map(s => <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <Input 
-                                    placeholder="Adm No. or Name..."
-                                    value={searchTerm}
-                                    onChange={(e) => { setSearchTerm(e.target.value); setFoundStudents(null); setFindError(null); setShowQuickAdd(false); }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleFindStudent()}}
-                                />
-                                <Button onClick={handleFindStudent} disabled={isFinding} size="icon"><Search/></Button>
-                            </div>
-                            
-                            {isFinding && <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
-                            
-                            {findError && (
+                {/* STICKY LEFT COLUMN */}
+                <div className="lg:col-span-1">
+                    <div className="lg:sticky lg:top-8 space-y-4">
+                        <Card>
+                            <CardHeader><CardTitle>Add Student</CardTitle></CardHeader>
+                            <CardContent className="space-y-4">
                                 <div className="space-y-2">
-                                    <p className="text-sm text-destructive">{findError}</p>
-                                    {showQuickAdd && (
-                                        <Button variant="outline" className="w-full" onClick={() => setShowQuickAdd(true)}>
-                                            <Plus className="mr-2 h-4 w-4" /> Add "{searchTerm}" Manually
-                                        </Button>
-                                    )}
+                                    <Label>Target Section</Label>
+                                    <Select value={activeSectionId} onValueChange={setActiveSectionId}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {sections.map(s => <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                            )}
-
-                            {showQuickAdd && (
-                                <Card className="border-primary/20 bg-primary/5">
-                                    <CardHeader className="p-3">
-                                        <CardTitle className="text-sm">Quick Add Student</CardTitle>
-                                        <CardDescription className="text-xs">This will add the student to the database.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-3 pt-0 space-y-3">
-                                        <div className="grid gap-2">
-                                            <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} />
-                                            <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} />
-                                            <Input placeholder="Class (e.g. Form 4)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} />
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button size="sm" className="flex-1" onClick={handleQuickAdd} disabled={isQuickAdding}>
-                                                {isQuickAdding ? <Loader2 className="animate-spin" /> : <UserPlus className="mr-2" />} Create & Add
+                                <div className="flex items-start gap-2">
+                                    <Input 
+                                        placeholder="Adm No. or Name..."
+                                        value={searchTerm}
+                                        onChange={(e) => { setSearchTerm(e.target.value); setFoundStudents(null); setFindError(null); setShowQuickAdd(false); }}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') handleFindStudent()}}
+                                    />
+                                    <Button onClick={handleFindStudent} disabled={isFinding} size="icon"><Search/></Button>
+                                </div>
+                                
+                                {isFinding && <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+                                
+                                {findError && (
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-destructive">{findError}</p>
+                                        {showQuickAdd && (
+                                            <Button variant="outline" className="w-full" onClick={() => setShowQuickAdd(true)}>
+                                                <Plus className="mr-2 h-4 w-4" /> Add "{searchTerm}" Manually
                                             </Button>
-                                            <Button size="sm" variant="ghost" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-
-                            {foundStudents && foundStudents.length > 0 && (
-                                <div className="p-3 bg-muted rounded-md text-sm space-y-3 mt-2">
-                                    <p className="font-semibold">Found {foundStudents.length}:</p>
-                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                        {foundStudents.map(student => (
-                                            <div key={student.id} className="flex justify-between items-center bg-background p-2 rounded-md">
-                                                <div className="flex-1 min-w-0 mr-2">
-                                                    <p className="font-medium truncate">{student.first_name} {student.last_name}</p>
-                                                    <p className="text-xs text-muted-foreground">{student.admission_number}</p>
-                                                </div>
-                                                <Button size="sm" onClick={() => handleAddStudent(student, activeSectionId)}>Add</Button>
-                                            </div>
-                                        ))}
+                                        )}
                                     </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                    <Button variant="outline" className="w-full" onClick={handleAddSection}><Plus className="mr-2"/> Add New Section</Button>
+                                )}
+
+                                {showQuickAdd && (
+                                    <Card className="border-primary/20 bg-primary/5">
+                                        <CardHeader className="p-3">
+                                            <CardTitle className="text-sm">Quick Add Student</CardTitle>
+                                            <CardDescription className="text-xs">This will add the student to the database.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="p-3 pt-0 space-y-3">
+                                            <div className="grid gap-2">
+                                                <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} />
+                                                <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} />
+                                                <Input placeholder="Class (e.g. Form 4)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button size="sm" className="flex-1" onClick={handleQuickAdd} disabled={isQuickAdding}>
+                                                    {isQuickAdding ? <Loader2 className="animate-spin" /> : <UserPlus className="mr-2" />} Create & Add
+                                                </Button>
+                                                <Button size="sm" variant="ghost" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {foundStudents && foundStudents.length > 0 && (
+                                    <div className="p-3 bg-muted rounded-md text-sm space-y-3 mt-2">
+                                        <p className="font-semibold">Found {foundStudents.length}:</p>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                                            {foundStudents.map(student => (
+                                                <div key={student.id} className="flex justify-between items-center bg-background p-2 rounded-md">
+                                                    <div className="flex-1 min-w-0 mr-2">
+                                                        <p className="font-medium truncate">{student.first_name} {student.last_name}</p>
+                                                        <p className="text-xs text-muted-foreground">{student.admission_number}</p>
+                                                    </div>
+                                                    <Button size="sm" onClick={() => handleAddStudent(student, activeSectionId)}>Add</Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Button variant="outline" className="w-full" onClick={handleAddSection}><Plus className="mr-2"/> Add New Section</Button>
+                    </div>
                 </div>
 
+                {/* SCROLLABLE RIGHT COLUMN */}
                 <div className="lg:col-span-2 space-y-6">
                     {sections.map((section) => (
-                        <Card key={section.id} className={cn(activeSectionId === section.id && "ring-2 ring-primary")}>
+                        <Card 
+                            key={section.id} 
+                            className={cn(
+                                "transition-all duration-300",
+                                activeSectionId === section.id ? "ring-2 ring-primary shadow-md" : "opacity-90"
+                            )}
+                        >
                             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                                 <div className="flex-grow mr-4">
                                     <Input 
