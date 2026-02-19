@@ -30,10 +30,9 @@ export async function saveList(
       const newListData = {
         title: list.title,
         prepared_by: list.prepared_by || '',
-        student_admission_numbers: [],
+        sections: list.sections || [{ id: 'default', title: 'Main List', student_admission_numbers: [] }],
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
-        // created_by should be current user ID
       };
       const docRef = await addDoc(collection(db, 'custom_lists'), newListData);
       revalidatePath('/list-builder');

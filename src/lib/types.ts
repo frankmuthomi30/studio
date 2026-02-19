@@ -53,12 +53,18 @@ export type StudentWithChoirStatus = Student & {
   choirMember?: Omit<ChoirMember, 'id' | 'admission_number' | 'first_name' | 'last_name' | 'class'>;
 };
 
-export type CustomList = {
+export type ListSection = {
   id: string;
   title: string;
   student_admission_numbers: string[];
+};
+
+export type CustomList = {
+  id: string;
+  title: string;
   prepared_by?: string;
   event_date?: Timestamp;
+  sections: ListSection[];
   created_at?: Timestamp;
   updated_at?: Timestamp;
   created_by?: string;

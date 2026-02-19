@@ -1,9 +1,9 @@
 'use client';
 import { useState, useMemo, useTransition, useEffect } from 'react';
-import type { CustomList, Student } from '@/lib/types';
+import type { CustomList, Student, ListSection } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, getDocs, orderBy } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon } from 'lucide-react';
+import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon, Trash2, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Editor component for a single list
@@ -37,7 +38,14 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [eventDate, setEventDate] = useState<Date | undefined>(
         list.event_date ? list.event_date.toDate() : undefined
     );
-    const [studentAdmissionNumbers, setStudentAdmissionNumbers] = useState<string[]>(list.student_admission_numbers || []);
+    
+    // Initialize sections. Support legacy lists by creating a default section if none exist.
+    const [sections, setSections] = useState<ListSection[]>(() => {
+        if (list.sections && list.sections.length > 0) return list.sections;
+        return [{ id: 'default', title: 'Main List', student_admission_numbers: [] }];
+    });
+
+    const [activeSectionId, setActiveSectionId] = useState<string>(sections[0].id);
     
     // Search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -45,23 +53,27 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [isFinding, setIsFinding] = useState(false);
     const [findError, setFindError] = useState<string | null>(null);
 
-    // Fetch student details for the IDs in the list
-    const [studentsInList, setStudentsInList] = useState<Student[] | null>(null);
+    // Fetch student details for all sections
+    const allAdmissionNumbers = useMemo(() => {
+        return Array.from(new Set(sections.flatMap(s => s.student_admission_numbers)));
+    }, [sections]);
+
+    const [studentsMap, setStudentsMap] = useState<Map<string, Student>>(new Map());
     const [studentsLoading, setStudentsLoading] = useState(false);
 
     useEffect(() => {
-        if (!firestore || studentAdmissionNumbers.length === 0) {
-            setStudentsInList([]);
+        if (!firestore || allAdmissionNumbers.length === 0) {
+            setStudentsMap(new Map());
             return;
         }
 
         const fetchStudentsInChunks = async () => {
             setStudentsLoading(true);
-            const allStudents: Student[] = [];
+            const newMap = new Map<string, Student>();
             const chunks: string[][] = [];
             
-            for (let i = 0; i < studentAdmissionNumbers.length; i += 30) {
-                chunks.push(studentAdmissionNumbers.slice(i, i + 30));
+            for (let i = 0; i < allAdmissionNumbers.length; i += 30) {
+                chunks.push(allAdmissionNumbers.slice(i, i + 30));
             }
 
             try {
@@ -78,21 +90,22 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 for (const querySnapshot of querySnapshots) {
                     if (querySnapshot) {
                         querySnapshot.forEach((doc) => {
-                            allStudents.push({ id: doc.id, ...doc.data() } as Student);
+                            const student = { id: doc.id, ...doc.data() } as Student;
+                            newMap.set(student.admission_number, student);
                         });
                     }
                 }
-                setStudentsInList(allStudents);
+                setStudentsMap(newMap);
             } catch (error) {
                 console.error("Error fetching students in chunks:", error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not load student details for the list.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load student details.' });
             } finally {
                 setStudentsLoading(false);
             }
         };
 
         fetchStudentsInChunks();
-    }, [firestore, studentAdmissionNumbers, toast]);
+    }, [firestore, allAdmissionNumbers, toast]);
     
     const handleFindStudent = async () => {
         if (!searchTerm.trim() || !firestore) return;
@@ -100,29 +113,21 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         setFoundStudents(null);
         setFindError(null);
         const term = searchTerm.trim();
-        // Also search for capitalized version for better matching of names
         const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1);
     
         try {
             const found: Student[] = [];
             const foundIds = new Set<string>();
     
-            // 1. Search by admission number (exact match)
             const docRef = doc(firestore, 'students', term);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const student = { id: docSnap.id, ...docSnap.data() } as Student;
-                if (!foundIds.has(student.id!)) {
-                    found.push(student);
-                    foundIds.add(student.id!);
-                }
+                found.push(student);
+                foundIds.add(student.id!);
             }
     
-            // 2. Search by name (prefix search on first_name and last_name)
-            // Since we can't do OR, we run multiple queries.
-            // We'll search for the raw term and a capitalized version to handle some casing issues.
             const searchTerms = Array.from(new Set([term, capitalizedTerm]));
-            
             for (const st of searchTerms) {
                 const qFirstName = query(
                     collection(firestore, 'students'),
@@ -154,17 +159,15 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             }
     
             if (found.length > 0) {
-                // Filter out students already in the list
-                const newResults = found.filter(s => !studentAdmissionNumbers.includes(s.admission_number));
+                const newResults = found.filter(s => !allAdmissionNumbers.includes(s.admission_number));
                 if (newResults.length > 0) {
-                    setFoundStudents(newResults); // Set array of students
+                    setFoundStudents(newResults);
                 } else {
                      setFindError('All matching students are already in the list.');
                 }
             } else {
                  setFindError('No student found with that Admission Number or Name.');
             }
-    
         } catch (error) {
             setFindError('An error occurred while searching.');
             console.error(error);
@@ -173,14 +176,48 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         }
     };
 
-    const handleAddStudent = (student: Student) => {
-        setStudentAdmissionNumbers(prev => [...prev, student.admission_number]);
+    const handleAddStudent = (student: Student, sectionId: string) => {
+        setSections(prev => prev.map(s => {
+            if (s.id === sectionId) {
+                return { ...s, student_admission_numbers: [...s.student_admission_numbers, student.admission_number] };
+            }
+            return s;
+        }));
         setFoundStudents(prev => prev ? prev.filter(s => s.id !== student.id) : null);
         setFindError(null);
     };
 
-    const handleRemoveStudent = (admissionNumber: string) => {
-        setStudentAdmissionNumbers(prev => prev.filter(id => id !== admissionNumber));
+    const handleRemoveStudent = (admissionNumber: string, sectionId: string) => {
+        setSections(prev => prev.map(s => {
+            if (s.id === sectionId) {
+                return { ...s, student_admission_numbers: s.student_admission_numbers.filter(id => id !== admissionNumber) };
+            }
+            return s;
+        }));
+    };
+
+    const handleAddSection = () => {
+        const newId = `section-${Date.now()}`;
+        setSections(prev => [...prev, { id: newId, title: `New Section ${prev.length + 1}`, student_admission_numbers: [] }]);
+        setActiveSectionId(newId);
+    };
+
+    const handleRemoveSection = (sectionId: string) => {
+        if (sections.length <= 1) {
+            toast({ variant: 'destructive', title: 'Error', description: 'A list must have at least one section.' });
+            return;
+        }
+        setSections(prev => {
+            const filtered = prev.filter(s => s.id !== sectionId);
+            if (activeSectionId === sectionId) {
+                setActiveSectionId(filtered[0].id);
+            }
+            return filtered;
+        });
+    };
+
+    const handleUpdateSectionTitle = (sectionId: string, title: string) => {
+        setSections(prev => prev.map(s => s.id === sectionId ? { ...s, title } : s));
     };
 
     const handleSaveList = () => {
@@ -189,7 +226,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 id: list.id,
                 title: listTitle,
                 prepared_by: preparedBy,
-                student_admission_numbers: studentAdmissionNumbers,
+                sections: sections,
                 event_date: eventDate,
             });
 
@@ -208,7 +245,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
 
-        // This function will run on EVERY page, drawing the page number and date.
         const drawPageFooter = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
             doc.setFontSize(9);
@@ -223,9 +259,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         if (schoolLogo?.imageUrl) {
             try {
                 doc.addImage(schoolLogo.imageUrl, 'PNG', margin, 15, 20, 20);
-            } catch (error) {
-                console.error("Error adding logo image to PDF:", error);
-            }
+            } catch (error) { console.error(error); }
         }
         doc.setFont('times', 'bold');
         doc.setFontSize(20);
@@ -239,90 +273,105 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         doc.setLineWidth(0.5);
         doc.line(margin, 15 + 28, pageWidth - margin, 15 + 28);
         
-        // --- Title (below header, with wrapping) ---
         doc.setFont('times', 'bold');
         doc.setFontSize(14);
         const titleLines = doc.splitTextToSize(listTitle, pageWidth - margin * 2);
         doc.text(titleLines, pageWidth / 2, 50, { align: 'center' });
-        let titleHeight = (doc.getTextDimensions(titleLines).h);
+        let currentY = 50 + (doc.getTextDimensions(titleLines).h);
 
         if (eventDate) {
             doc.setFont('times', 'normal');
             doc.setFontSize(11);
             doc.setTextColor(80);
-            doc.text(`Event Date: ${format(eventDate, 'EEEE, MMMM d, yyyy')}`, pageWidth / 2, 50 + titleHeight, { align: 'center' });
-            titleHeight += 6; // Add some space
+            doc.text(`Event Date: ${format(eventDate, 'EEEE, MMMM d, yyyy')}`, pageWidth / 2, currentY + 4, { align: 'center' });
+            currentY += 10;
             doc.setTextColor(0);
+        } else {
+            currentY += 4;
         }
 
-        // --- Table ---
-        (doc as any).autoTable({
-            head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
-            body: (studentsInList || []).sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, s.class, '']),
-            startY: 50 + titleHeight + 2,
-            theme: 'grid',
-            headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
-            styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 10 },
-            margin: { left: margin, right: margin },
-            didDrawPage: drawPageFooter, // Use the page-specific footer function here
-        });
+        // --- Render Sections ---
+        for (const section of sections) {
+            const sectionStudents = section.student_admission_numbers
+                .map(adm => studentsMap.get(adm))
+                .filter(Boolean) as Student[];
+            
+            if (sectionStudents.length === 0) continue;
+
+            // Check for space for section header
+            if (currentY > pageHeight - 40) {
+                doc.addPage();
+                currentY = 20;
+            }
+
+            doc.setFont('times', 'bold');
+            doc.setFontSize(12);
+            doc.text(section.title, margin, currentY);
+            currentY += 4;
+
+            (doc as any).autoTable({
+                head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
+                body: sectionStudents.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, s.class, '']),
+                startY: currentY,
+                theme: 'grid',
+                headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
+                styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 10 },
+                margin: { left: margin, right: margin },
+                didDrawPage: drawPageFooter,
+            });
+
+            currentY = (doc as any).lastAutoTable.finalY + 10;
+        }
         
-        // --- Signature and Stamp Block (Dynamically placed on the last page) ---
+        // --- Signature and Stamp Block ---
         const finalPageNumber = doc.internal.getNumberOfPages();
-        doc.setPage(finalPageNumber); // Go to the last page
+        doc.setPage(finalPageNumber);
 
-        let finalTableY = (doc as any).lastAutoTable.finalY;
-        let signatureStartY = 0;
-
-        const signatureBlockHeight = 28; // Approx height of the signature content
-        const gapBelowTable = 8; // The space between the table and the signature block
+        const signatureBlockHeight = 28;
+        const gapBelowTable = 8;
         const totalSpaceNeeded = signatureBlockHeight + gapBelowTable;
-        const pageBottomMargin = 15; // Space for the page footer text
+        const pageBottomMargin = 15;
 
-        // Check if there's enough space for the signatures below the table on the current last page.
-        if (finalTableY + totalSpaceNeeded > pageHeight - pageBottomMargin) {
+        let signatureStartY;
+        if (currentY + totalSpaceNeeded > pageHeight - pageBottomMargin) {
             doc.addPage();
-            // Since we added a page, we must also draw the standard page footer on it.
             drawPageFooter({ pageNumber: doc.internal.getNumberOfPages() });
-            signatureStartY = margin; // Start at the top of the new page
+            signatureStartY = 20;
         } else {
-            signatureStartY = finalTableY + gapBelowTable; // Start below the table
+            signatureStartY = currentY;
         }
         
         doc.setFont('times', 'normal');
         doc.setFontSize(10);
         doc.setLineWidth(0.2);
-
         const signatureWidth = (pageWidth - margin * 3) / 2;
 
-        // Draw first signature line and text based on the calculated signatureStartY
-        doc.line(margin, signatureStartY + 20, margin + signatureWidth, signatureStartY + 20);
-        doc.text(preparedBy || 'Matron Agnes', margin, signatureStartY + 25);
+        doc.line(margin, signatureStartY + 15, margin + signatureWidth, signatureStartY + 15);
+        doc.text(preparedBy || 'Matron Agnes', margin, signatureStartY + 20);
 
-        // Draw stamp area, also based on signatureStartY
         const stampX = pageWidth - margin - signatureWidth;
-        const stampY = signatureStartY; // Align top of stamp with top of signature area
+        const stampY = signatureStartY;
         doc.setLineDashPattern([2, 2], 0);
-        doc.rect(stampX, stampY, signatureWidth, 20);
+        doc.rect(stampX, stampY, signatureWidth, 15);
         doc.setLineDashPattern([], 0);
         doc.setTextColor(150);
-        doc.text('(School Stamp)', stampX + signatureWidth / 2, stampY + 12, { align: 'center' });
+        doc.text('(School Stamp)', stampX + signatureWidth / 2, stampY + 9, { align: 'center' });
         doc.setTextColor(0);
 
-        doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}.pdf`);
     };
 
     return (
         <div className="space-y-6">
              <div className="flex justify-between items-center">
                 <Button variant="outline" onClick={onBack}>
-                    <X className="mr-2" /> Back to All Lists
+                    <X className="mr-2" /> Back
                 </Button>
                 <div className="flex gap-2">
                     <Button onClick={handleSaveList} disabled={isPending}>
-                        {isPending ? <Loader2 className="animate-spin" /> : <Check className="mr-2"/>} Save Changes
+                        {isPending ? <Loader2 className="animate-spin" /> : <Check className="mr-2"/>} Save
                     </Button>
-                    <Button variant="secondary" onClick={handleExportPdf} disabled={(studentsInList || []).length === 0}>
+                    <Button variant="secondary" onClick={handleExportPdf} disabled={allAdmissionNumbers.length === 0}>
                         <Printer className="mr-2" /> Print PDF
                     </Button>
                 </div>
@@ -343,25 +392,15 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Event Date (Optional)</Label>
+                            <Label>Event Date</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button
-                                        variant={'outline'}
-                                        className={cn('w-full justify-start text-left font-normal', !eventDate && 'text-muted-foreground')}
-                                    >
+                                    <Button variant={'outline'} className={cn('w-full justify-start text-left font-normal', !eventDate && 'text-muted-foreground')}>
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {eventDate ? format(eventDate, 'PPP') : <span>Pick an event date</span>}
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={eventDate}
-                                        onSelect={setEventDate}
-                                        initialFocus
-                                    />
-                                </PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={eventDate} onSelect={setEventDate} initialFocus /></PopoverContent>
                             </Popover>
                         </div>
                     </div>
@@ -378,42 +417,41 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-4">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Find and Add Student</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle>Add Student</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Target Section</Label>
+                                <Select value={activeSectionId} onValueChange={setActiveSectionId}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {sections.map(s => <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <div className="flex items-start gap-2">
                                 <Input 
-                                    placeholder="Enter Admission No. or Name..."
+                                    placeholder="Adm No. or Name..."
                                     value={searchTerm}
-                                    onChange={(e) => {
-                                        setSearchTerm(e.target.value);
-                                        setFoundStudents(null);
-                                        setFindError(null);
-                                    }}
+                                    onChange={(e) => { setSearchTerm(e.target.value); setFoundStudents(null); setFindError(null); }}
                                     onKeyDown={(e) => { if (e.key === 'Enter') handleFindStudent()}}
                                 />
                                 <Button onClick={handleFindStudent} disabled={isFinding} size="icon"><Search/></Button>
                             </div>
-                            
                             {isFinding && <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                             {findError && <p className="text-sm text-destructive">{findError}</p>}
-
                             {foundStudents && foundStudents.length > 0 && (
                                 <div className="p-3 bg-muted rounded-md text-sm space-y-3 mt-2">
-                                    <p className="font-semibold">Found {foundStudents.length} student(s):</p>
+                                    <p className="font-semibold">Found {foundStudents.length}:</p>
                                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                                         {foundStudents.map(student => (
                                             <div key={student.id} className="flex justify-between items-center bg-background p-2 rounded-md">
-                                                <div>
-                                                    <p className="font-medium">{student.first_name} {student.last_name}</p>
-                                                    <p className="text-xs text-muted-foreground">{student.admission_number} - {student.class}</p>
+                                                <div className="flex-1 min-w-0 mr-2">
+                                                    <p className="font-medium truncate">{student.first_name} {student.last_name}</p>
+                                                    <p className="text-xs text-muted-foreground">{student.admission_number}</p>
                                                 </div>
-                                                <Button size="sm" onClick={() => handleAddStudent(student)}>
-                                                    <Plus className="mr-2 h-4 w-4" /> Add
-                                                </Button>
+                                                <Button size="sm" onClick={() => handleAddStudent(student, activeSectionId)}>Add</Button>
                                             </div>
                                         ))}
                                     </div>
@@ -421,47 +459,66 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                             )}
                         </CardContent>
                     </Card>
+                    <Button variant="outline" className="w-full" onClick={handleAddSection}><Plus className="mr-2"/> Add New Section</Button>
                 </div>
 
-                <div className="lg:col-span-2">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between">
-                                Students in List
-                                <span className="text-primary font-bold">{studentAdmissionNumbers.length}</span>
-                            </CardTitle>
-                            <CardDescription>
-                                Review the students you've added to this list.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg">
-                                {studentsLoading && <div className="flex justify-center p-4"><Loader2 className="animate-spin"/></div>}
-                                {!studentsLoading && (studentsInList || []).length > 0 ? (studentsInList || []).map(student => (
-                                    <div key={student.id} className="flex items-center justify-between text-sm p-2 hover:bg-muted">
-                                        <div>
-                                            <p className="font-medium">{student.first_name} {student.last_name}</p>
-                                            <p className="text-xs text-muted-foreground">{student.admission_number} - {student.class}</p>
-                                        </div>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleRemoveStudent(student.admission_number)}>
-                                            <X className="h-4 w-4" />
+                <div className="lg:col-span-2 space-y-6">
+                    {sections.map((section, idx) => (
+                        <Card key={section.id} className={cn(activeSectionId === section.id && "ring-2 ring-primary")}>
+                            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                                <div className="flex-grow mr-4">
+                                    <Input 
+                                        value={section.title}
+                                        onChange={(e) => handleUpdateSectionTitle(section.id, e.target.value)}
+                                        className="font-bold border-none bg-transparent h-8 p-0 text-lg hover:bg-muted/50 focus:bg-muted"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => setActiveSectionId(section.id)} className={activeSectionId === section.id ? "text-primary" : ""}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                    {sections.length > 1 && (
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleRemoveSection(section.id)}>
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
-                                    </div>
-                                )) : !studentsLoading && (
-                                    <p className="text-sm text-center text-muted-foreground p-8">No students added yet.</p>
-                                )}
-                             </div>
-                        </CardContent>
-                    </Card>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-2 border rounded-lg overflow-hidden">
+                                    {section.student_admission_numbers.length > 0 ? (
+                                        section.student_admission_numbers.map((adm, sIdx) => {
+                                            const student = studentsMap.get(adm);
+                                            return (
+                                                <div key={adm} className="flex items-center justify-between p-2 text-sm hover:bg-muted border-b last:border-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground w-4">{sIdx + 1}.</span>
+                                                        <div>
+                                                            <p className="font-medium">{student ? `${student.first_name} ${student.last_name}` : adm}</p>
+                                                            <p className="text-xs text-muted-foreground">{adm} - {student?.class || '...'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleRemoveStudent(adm, section.id)}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <p className="text-sm text-center text-muted-foreground p-4">Section is empty.</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </div>
         </div>
     );
 }
 
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Main client component to manage all lists
+// Main client component
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 export default function ListBuilderClient() {
     const firestore = useFirestore();
@@ -469,36 +526,29 @@ export default function ListBuilderClient() {
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
 
-    // State for view
     const [viewMode, setViewMode] = useState<'list' | 'edit'>('list');
     const [selectedList, setSelectedList] = useState<CustomList | null>(null);
-    
-    // Dialog for creating a new list
     const [newListTitle, setNewListTitle] = useState('');
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-    // Data fetching
     const listsQuery = useMemoFirebase(() => 
         !authLoading && firestore ? query(collection(firestore, 'custom_lists'), orderBy('title', 'asc')) : null
     , [firestore, authLoading]);
     const { data: lists, isLoading: listsLoading } = useCollection<CustomList>(listsQuery);
 
     const handleCreateList = () => {
-        if (!newListTitle.trim()) {
-            toast({ variant: 'destructive', title: 'Title is required.' });
-            return;
-        }
+        if (!newListTitle.trim()) return;
         startTransition(async () => {
-            const result = await saveList({ title: newListTitle, prepared_by: '' });
+            const result = await saveList({ 
+                title: newListTitle, 
+                prepared_by: '',
+                sections: [{ id: 'default', title: 'Main List', student_admission_numbers: [] }]
+            });
             if (result.success && result.id) {
-                toast({ title: 'Success!', description: `List '${newListTitle}' created.` });
-                // Immediately switch to editing the new list
-                setSelectedList({ id: result.id, title: newListTitle, student_admission_numbers: [], prepared_by: '' });
+                setSelectedList({ id: result.id, title: newListTitle, sections: [], prepared_by: '' });
                 setViewMode('edit');
                 setIsCreateDialogOpen(false);
                 setNewListTitle('');
-            } else {
-                toast({ variant: 'destructive', title: 'Error', description: result.message });
             }
         });
     };
@@ -508,85 +558,45 @@ export default function ListBuilderClient() {
         setViewMode('edit');
     };
     
-    const isLoading = authLoading || listsLoading;
-
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~ RENDER LOGIC ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     if (viewMode === 'edit' && selectedList) {
         return <ListEditor list={selectedList} onBack={() => { setViewMode('list'); setSelectedList(null); }} />;
     }
 
     return (
         <div>
-            {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                </div>
+            {authLoading || listsLoading ? (
+                <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
             ) : (
                 <div className="space-y-6">
-                     <div className="flex justify-end">
-                        <Button onClick={() => setIsCreateDialogOpen(true)}>
-                            <ListPlus className="mr-2"/>
-                            Create New List
-                        </Button>
-                    </div>
+                     <div className="flex justify-end"><Button onClick={() => setIsCreateDialogOpen(true)}><ListPlus className="mr-2"/> New List</Button></div>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {(lists || []).length > 0 ? (lists || []).map(list => (
+                        {(lists || []).map(list => (
                            <Card key={list.id} className="flex flex-col">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Users className="text-primary"/> {list.title}
-                                    </CardTitle>
+                                    <CardTitle className="flex items-center gap-2 truncate"><Users className="text-primary shrink-0"/> {list.title}</CardTitle>
                                     <CardDescription>
-                                        Contains {list.student_admission_numbers?.length || 0} students. 
-                                        Prepared by: {list.prepared_by || 'N/A'}.
-                                        {list.event_date && (
-                                            <span className="block mt-1 text-xs font-medium text-primary">
-                                                Event on: {format(list.event_date.toDate(), 'PPP')}
-                                            </span>
-                                        )}
+                                        {list.sections?.length || 1} section(s). 
+                                        {list.event_date && <span className="block mt-1 text-xs text-primary">{format(list.event_date.toDate(), 'PPP')}</span>}
                                     </CardDescription>
                                 </CardHeader>
-                                <CardContent className="flex-grow" />
-                                <CardFooter className="flex justify-between items-center">
+                                <CardFooter className="mt-auto flex justify-between items-center">
                                     <DeleteListButton listId={list.id} listTitle={list.title} />
-                                    <Button onClick={() => handleEditList(list)}>
-                                        <Edit className="mr-2 h-4 w-4"/>
-                                        Manage List
-                                    </Button>
+                                    <Button onClick={() => handleEditList(list)}><Edit className="mr-2 h-4 w-4"/> Manage</Button>
                                 </CardFooter>
                            </Card>
-                        )) : (
-                          <div className="col-span-full text-center py-12 text-muted-foreground border rounded-lg">
-                              <h3 className="text-xl font-semibold">No Custom Lists Found</h3>
-                              <p className="mt-2">Get started by creating your first list.</p>
-                          </div>
-                        )}
+                        ))}
                     </div>
                 </div>
             )}
 
-            {/* Dialog for creating a new list */}
             {isCreateDialogOpen && (
-                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+                 <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
                     <Card className="w-full max-w-md">
-                        <CardHeader>
-                            <CardTitle>Create New List</CardTitle>
-                            <CardDescription>Give your new list a name. You can add students in the next step.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                             <Input 
-                                placeholder="e.g., Form 4 Trip to Nairobi"
-                                value={newListTitle}
-                                onChange={(e) => setNewListTitle(e.target.value)}
-                                autoFocus
-                            />
-                        </CardContent>
+                        <CardHeader><CardTitle>Create New List</CardTitle></CardHeader>
+                        <CardContent><Input placeholder="e.g., Music Festival 2026" value={newListTitle} onChange={(e) => setNewListTitle(e.target.value)} autoFocus/></CardContent>
                         <CardFooter className="flex justify-end gap-2">
                             <Button variant="ghost" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                            <Button onClick={handleCreateList} disabled={isPending}>
-                               {isPending && <Loader2 className="animate-spin mr-2"/>} Create & Continue
-                            </Button>
+                            <Button onClick={handleCreateList} disabled={isPending}>{isPending && <Loader2 className="animate-spin mr-2"/>} Create</Button>
                         </CardFooter>
                     </Card>
                  </div>
