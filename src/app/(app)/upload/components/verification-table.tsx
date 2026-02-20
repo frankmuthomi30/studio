@@ -39,6 +39,7 @@ export default function VerificationTable({ data, onCommit, onCancel }: Verifica
                     <TableHead>Last Name</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Stream</TableHead>
+                    <TableHead>Gender</TableHead>
                     <TableHead>UPI</TableHead>
                     <TableHead>KCSE</TableHead>
                     <TableHead>Contacts</TableHead>
@@ -53,6 +54,7 @@ export default function VerificationTable({ data, onCommit, onCancel }: Verifica
                       <TableCell>{student.last_name}</TableCell>
                       <TableCell>{student.class}</TableCell>
                       <TableCell>{student.stream || 'N/A'}</TableCell>
+                      <TableCell>{student.gender || 'N/A'}</TableCell>
                       <TableCell>{student.upi || 'N/A'}</TableCell>
                       <TableCell>{student.common_kcse || 'N/A'}</TableCell>
                       <TableCell>{student.contacts || 'N/A'}</TableCell>

@@ -6,6 +6,7 @@ export type Student = {
   first_name: string;
   last_name: string;
   class: string;
+  gender?: string;
   stream?: string;
   year?: string;
   upi?: string;

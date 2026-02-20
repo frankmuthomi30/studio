@@ -42,8 +42,8 @@ export async function processExcelFile(
         return { success: false, error: 'The uploaded Excel file is empty or has no data rows.' };
     }
 
-    const firstRow = jsonData[0];
-    const headers = Object.keys(firstRow);
+    const firstRow = jsonData[jsonData.length > 0 ? 0 : 0];
+    const headers = Object.keys(jsonData[0] || {});
     
     const headerMap: { [key: string]: string } = {};
     headers.forEach(header => {
@@ -65,6 +65,7 @@ export async function processExcelFile(
     const upiHeader = findHeader(['UPI']);
     const kcseHeader = findHeader(['common.kcse', 'KCSE', 'KCSE Score']);
     const contactsHeader = findHeader(['Contacts', 'Contact', 'Phone Number']);
+    const genderHeader = findHeader(['Gender']);
 
     if (!admissionHeader || !nameHeader) {
         let missing = [];
@@ -84,6 +85,7 @@ export async function processExcelFile(
         first_name,
         last_name,
         class: className,
+        gender: genderHeader && row[genderHeader] ? String(row[genderHeader]) : undefined,
         stream: streamHeader && row[streamHeader] ? String(row[streamHeader]) : undefined,
         upi: upiHeader && row[upiHeader] ? String(row[upiHeader]) : undefined,
         common_kcse: kcseHeader && row[kcseHeader] ? Number(row[kcseHeader]) : undefined,
