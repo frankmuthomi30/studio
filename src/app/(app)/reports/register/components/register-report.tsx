@@ -23,13 +23,14 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const firestore = useFirestore();
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
+    const [serialNumber, setSerialNumber] = useState<string>('');
 
     useEffect(() => {
-        // This effect runs only on the client, preventing hydration mismatch
-        setGeneratedDate(new Date());
+        const now = new Date();
+        setGeneratedDate(now);
+        setSerialNumber(`GGHS/${format(now, 'yyyyMMdd')}/${Math.random().toString(36).substring(2, 6).toUpperCase()}`);
     }, []);
 
-    // 1. Query for all sessions for the specified choir
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !filters.choirId) return null;
 
@@ -40,7 +41,6 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    // Filter by date and sort on the client to find the earliest session
     const firstSession = useMemo(() => {
         if (!sessions || sessions.length === 0 || !filters.dateRange?.from) return null;
         
@@ -61,13 +61,11 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         return sorted[0];
     }, [sessions, filters.dateRange]);
 
-    // 2. Get the admission numbers from the first session's attendance map
     const studentAdmissionNumbers = useMemo(() => {
         if (!firstSession) return [];
         return Object.keys(firstSession.attendance_map);
     }, [firstSession]);
 
-    // 3. Query for the student details based on the admission numbers from the session
     const [students, setStudents] = useState<Student[] | null>(null);
     const [studentsLoading, setStudentsLoading] = useState(false);
 
@@ -116,7 +114,6 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, studentAdmissionNumbers]);
 
 
-    // 4. Combine data for the report
     const reportData = useMemo(() => {
         if (!students || !firstSession) {
             return null;
@@ -155,7 +152,11 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
     if (!reportData || !sessions || sessions.length === 0 || !firstSession) {
         return (
-            <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
+            <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg relative" id="register-report">
+                 <div className="absolute top-4 right-8 text-[10px] text-gray-400 font-mono text-right">
+                    <p>Serial: {serialNumber}</p>
+                    {generatedDate && <p>Generated: {format(generatedDate, 'dd/MM/yyyy HH:mm')}</p>}
+                </div>
                  <header className="flex items-start justify-between border-b-4 border-gray-800 pb-4">
                     <div className="flex items-start gap-4">
                         {schoolLogo && (
@@ -187,7 +188,13 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }
     
   return (
-    <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg" id="register-report">
+    <div className="report-preview mx-auto bg-white p-8 rounded-lg shadow-lg relative" id="register-report">
+        {/* Serial Number top right */}
+        <div className="absolute top-4 right-8 text-[10px] text-gray-400 font-mono text-right">
+            <p>Serial: {serialNumber}</p>
+            {generatedDate && <p>Generated: {format(generatedDate, 'dd/MM/yyyy HH:mm')}</p>}
+        </div>
+
         <header className="flex items-start justify-between border-b-4 border-gray-800 pb-4">
             <div className="flex items-start gap-4">
                 {schoolLogo && (
@@ -235,7 +242,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                             <TableRow key={member.admission_number}>
                                 <TableCell>{member.admission_number}</TableCell>
                                 <TableCell>{member.first_name} {member.last_name}</TableCell>
-                                <TableCell>{member.class}</TableCell>
+                                <TableCell>{member.class} {member.stream || ''}</TableCell>
                             </TableRow>
                         )
                     })}
@@ -254,11 +261,14 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                 <p>Prepared by: Mr. Muthomi (Choir Director)</p>
                 <p>Page 1 of 1</p>
             </div>
-            {generatedDate && (
-              <p className="text-center text-xs mt-4">
-                Generated on {format(generatedDate, 'PPp')}
-              </p>
-            )}
+            <div className="text-center text-[10px] mt-4 space-y-1">
+              <p className="font-bold">GENERATED BY THE APP - Gatura Harmony Hub</p>
+              {generatedDate && (
+                <p>
+                  On {format(generatedDate, 'PPPP')} at {format(generatedDate, 'p')}
+                </p>
+              )}
+            </div>
         </footer>
     </div>
   );
