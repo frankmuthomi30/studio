@@ -25,11 +25,9 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
-        // This effect runs only on the client, preventing hydration mismatch
         setGeneratedDate(new Date());
     }, []);
 
-    // 1. Query for all sessions for the specified choir
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !filters.choirId) return null;
 
@@ -40,7 +38,6 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
     }, [firestore, filters.choirId]);
     const { data: sessions, isLoading: sessionsLoading } = useCollection<AttendanceSession>(sessionsQuery);
 
-    // Filter by date and sort on the client to find the earliest session
     const firstSession = useMemo(() => {
         if (!sessions || sessions.length === 0 || !filters.dateRange?.from) return null;
         
@@ -61,21 +58,17 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
         return sorted[0];
     }, [sessions, filters.dateRange]);
 
-    // 2. Get the admission numbers from the first session's attendance map
     const studentAdmissionNumbers = useMemo(() => {
         if (!firstSession) return [];
         return Object.keys(firstSession.attendance_map);
     }, [firstSession]);
 
-    // 3. Query for the student details based on the admission numbers from the session
     const studentQuery = useMemoFirebase(() => {
         if (!firestore || studentAdmissionNumbers.length === 0) return null;
-        // Batching reads for up to 30 students at a time.
         return query(collection(firestore, 'students'), where('admission_number', 'in', studentAdmissionNumbers.slice(0, 30)));
     }, [firestore, studentAdmissionNumbers]);
     const { data: students, isLoading: studentsLoading } = useCollection<Student>(studentQuery);
 
-    // 4. Combine data for the report
     const reportData = useMemo(() => {
         if (!students || !firstSession) {
             return null;
@@ -215,7 +208,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
             </div>
             {generatedDate && (
               <p className="text-center text-xs mt-4">
-                Generated on {format(generatedDate, 'PPp')}
+                Generated on {format(generatedDate, 'PPPP')} at {format(generatedDate, 'p')}
               </p>
             )}
         </footer>

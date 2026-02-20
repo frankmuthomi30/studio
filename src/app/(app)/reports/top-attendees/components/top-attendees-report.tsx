@@ -17,7 +17,6 @@ export default function TopAttendeesReport({ attendees, choirName }: TopAttendee
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
-        // This effect runs only on the client, preventing hydration mismatch
         setGeneratedDate(new Date());
     }, []);
 
@@ -95,7 +94,7 @@ export default function TopAttendeesReport({ attendees, choirName }: TopAttendee
             </div>
             {generatedDate && (
               <p className="text-center text-xs mt-4">
-                Generated on {format(generatedDate, 'PPp')}
+                Generated on {format(generatedDate, 'PPPP')} at {format(generatedDate, 'p')}
               </p>
             )}
         </footer>

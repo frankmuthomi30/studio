@@ -17,12 +17,10 @@ export default function AllMembersReport({ students, choirName }: AllMembersRepo
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
 
     useEffect(() => {
-        // This effect runs only on the client, preventing hydration mismatch
         setGeneratedDate(new Date());
     }, []);
     
     const sortedStudents = students.sort((a, b) => {
-        // Sort by class first, then by name
         const classComparison = (a.class || '').localeCompare(b.class || '');
         if (classComparison !== 0) return classComparison;
         const a_name = `${a.first_name} ${a.last_name}`;
@@ -98,7 +96,7 @@ export default function AllMembersReport({ students, choirName }: AllMembersRepo
             </div>
             {generatedDate && (
               <p className="text-center text-xs mt-4">
-                Generated on {format(generatedDate, 'PPp')}
+                Generated on {format(generatedDate, 'PPPP')} at {format(generatedDate, 'p')}
               </p>
             )}
         </footer>

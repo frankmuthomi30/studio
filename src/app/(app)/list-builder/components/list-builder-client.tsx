@@ -22,9 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Editor component for a single list
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 type ListEditorProps = {
     list: CustomList;
     onBack: () => void;
@@ -42,7 +39,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         list.event_date ? list.event_date.toDate() : undefined
     );
     
-    // Initialize sections with legacy support
     const [sections, setSections] = useState<ListSection[]>(() => {
         if (list.sections && list.sections.length > 0) return list.sections;
         const legacyStudents = list.student_admission_numbers || [];
@@ -55,21 +51,18 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
     const [activeSectionId, setActiveSectionId] = useState<string>(sections[0].id);
     
-    // Search states
     const [searchTerm, setSearchTerm] = useState('');
     const [foundStudents, setFoundStudents] = useState<Student[] | null>(null);
     const [isFinding, setIsFinding] = useState(false);
     const [findError, setFindError] = useState<string | null>(null);
     const [showQuickAdd, setShowQuickAdd] = useState(false);
 
-    // Quick Add Form States
     const [quickFirstName, setQuickFirstName] = useState('');
     const [quickLastName, setQuickLastName] = useState('');
     const [quickClass, setQuickClass] = useState('');
     const [quickStream, setQuickStream] = useState('');
     const [isQuickAdding, setIsQuickAdding] = useState(false);
 
-    // Fetch student details for all sections (unique IDs for fetching)
     const allAdmissionNumbers = useMemo(() => {
         return Array.from(new Set(sections.flatMap(s => s.student_admission_numbers)));
     }, [sections]);
@@ -248,7 +241,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const handleAddStudent = (student: Student, sectionId: string) => {
         setSections(prev => prev.map(s => {
             if (s.id === sectionId) {
-                // Prevent duplicate in the SAME section
                 if (s.student_admission_numbers.includes(student.admission_number)) return s;
                 return { ...s, student_admission_numbers: [...s.student_admission_numbers, student.admission_number] };
             }
@@ -316,26 +308,21 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
 
-        // Count TOTAL rows across all sections to determine stamp placement
         const totalRowsCount = sections.reduce((acc, s) => acc + s.student_admission_numbers.length, 0);
         const sectionCount = sections.length;
         
-        // Header stamp logic:
-        // 1. Total rows exactly 23-25 (one-page space optimization)
-        // 2. ONLY if there are 5 or fewer sub-sections (requested rule)
         const useHeaderStamp = (totalRowsCount >= 23 && totalRowsCount <= 25) && (sectionCount <= 5);
 
         const drawPageFooter = (data: any) => {
             const pageCount = doc.internal.getNumberOfPages();
             doc.setFontSize(8);
             doc.setTextColor(150);
-            const generatedOnText = `Generated on ${format(new Date(), 'PPp')}`;
+            const generatedOnText = `Generated on ${format(new Date(), 'PPPP')} at ${format(new Date(), 'p')}`;
             const pageNumText = `Page ${data.pageNumber} of ${pageCount}`;
             doc.text(generatedOnText, margin, pageHeight - 8);
             doc.text(pageNumText, pageWidth - margin, pageHeight - 8, { align: 'right' });
         };
 
-        // --- PDF Header ---
         if (schoolLogo?.imageUrl) {
             try {
                 doc.addImage(schoolLogo.imageUrl, 'PNG', margin, 15, 20, 20);
@@ -350,7 +337,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         doc.text('gaturagirls@gmail.com', margin + 25, 15 + 16);
         doc.text('0793328863', margin + 25, 15 + 20);
 
-        // --- Official Stamp Box at Top Right (Conditional) ---
         if (useHeaderStamp) {
             const stampBoxWidth = 50;
             const stampBoxHeight = 25;
@@ -390,7 +376,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             currentY += 6;
         }
 
-        // --- Render Sections ---
         for (const section of sections) {
             const sectionStudents = section.student_admission_numbers
                 .map(adm => studentsMap.get(adm))
@@ -422,12 +407,10 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             currentY = (doc as any).lastAutoTable.finalY + 10;
         }
 
-        // --- Render Bottom Stamp (If not using header stamp) ---
         if (!useHeaderStamp) {
             const stampBoxWidth = 55;
             const stampBoxHeight = 30;
             
-            // Check for space on current page
             if (currentY > pageHeight - (stampBoxHeight + 20)) {
                 doc.addPage();
                 currentY = 20;
@@ -510,7 +493,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* STICKY LEFT COLUMN */}
                 <div className="lg:col-span-1">
                     <div className="lg:sticky lg:top-8 space-y-4">
                         <Card>
@@ -593,7 +575,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                     </div>
                 </div>
 
-                {/* SCROLLABLE RIGHT COLUMN */}
                 <div className="lg:col-span-2 space-y-6">
                     {sections.map((section) => (
                         <Card 
@@ -655,9 +636,6 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     );
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Main client component
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 export default function ListBuilderClient() {
     const firestore = useFirestore();
     const { isUserLoading: authLoading } = useUser();

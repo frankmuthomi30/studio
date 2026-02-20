@@ -159,7 +159,7 @@ export default function IndividualReport({ student, choirName, attendanceSession
         </div>
         {generatedDate && (
           <p className="text-center text-xs mt-4">
-            Generated on {format(generatedDate, 'PPp')}
+            Generated on {format(generatedDate, 'PPPP')} at {format(generatedDate, 'p')}
           </p>
         )}
       </footer>
