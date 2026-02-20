@@ -103,11 +103,19 @@ export default function TopAttendeesReportPage() {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
         const now = new Date();
+        const serialNumber = `GGHS/${format(now, 'yyyyMMdd')}/${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
         let cursorY = margin;
+
+        // --- Serial and Generation info (High Header) ---
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 10, { align: 'right' });
+        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 13, { align: 'right' });
+        doc.setTextColor(0);
     
         // --- PDF Header ---
         if (schoolLogo?.imageUrl) {

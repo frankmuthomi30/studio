@@ -325,6 +325,13 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             doc.text(pageNumText, pageWidth - margin, pageHeight - 8, { align: 'right' });
         };
 
+        // --- Serial and Generation info (High Header - Above everything) ---
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 10, { align: 'right' });
+        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 13, { align: 'right' });
+        doc.setTextColor(0);
+
         if (schoolLogo?.imageUrl) {
             try {
                 doc.addImage(schoolLogo.imageUrl, 'PNG', margin, 15, 20, 20);
@@ -339,18 +346,11 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         doc.text('gaturagirls@gmail.com', margin + 25, 15 + 16);
         doc.text('0793328863', margin + 25, 15 + 20);
 
-        // Serial and Generation info top right
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 15 + 5, { align: 'right' });
-        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 15 + 9, { align: 'right' });
-        doc.setTextColor(0);
-
         if (useHeaderStamp) {
             const stampBoxWidth = 50;
             const stampBoxHeight = 25;
             const stampX = pageWidth - margin - stampBoxWidth;
-            const stampY = 22; // Adjusted for serial number
+            const stampY = 22; 
             
             doc.setLineWidth(0.2);
             doc.rect(stampX, stampY, stampBoxWidth, stampBoxHeight);
