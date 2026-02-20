@@ -1,3 +1,4 @@
+
 'use client';
 
 import PageHeader from '@/components/page-header';
@@ -34,7 +35,7 @@ export default function IndividualReportPage() {
     , [firestore, authLoading]);
     const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(choirsQuery);
     
-    // 2. Fetch all students (still needed to join with members)
+    // 2. Fetch all students
     const studentsQuery = useMemoFirebase(() =>
         !authLoading && firestore ? collection(firestore, 'students') : null
     , [firestore, authLoading]);
@@ -46,15 +47,15 @@ export default function IndividualReportPage() {
     , [firestore, selectedChoirId, authLoading]);
     const { data: choirMembers, isLoading: membersLoading } = useCollection<ChoirMember>(choirMembersQuery);
 
-    // 4. Fetch attendance sessions for the selected student and choir
+    // 4. Fetch attendance sessions for the selected choir
     const attendanceQuery = useMemoFirebase(() => 
-        !authLoading && firestore && studentToReport && selectedChoirId 
+        !authLoading && firestore && selectedChoirId 
         ? query(
             collection(firestore, 'choir_attendance'), 
             where('choirId', '==', selectedChoirId)
           ) 
         : null
-    , [firestore, studentToReport, selectedChoirId, authLoading]);
+    , [firestore, selectedChoirId, authLoading]);
     const { data: attendanceSessions, isLoading: attendanceLoading } = useCollection<AttendanceSession>(attendanceQuery);
     
     const selectedChoir = useMemo(() => {
@@ -62,7 +63,6 @@ export default function IndividualReportPage() {
         return choirs.find(c => c.id === selectedChoirId);
     }, [choirs, selectedChoirId]);
 
-    // Memoize the list of students who are members of the selected choir
     const choirStudents = useMemo(() => {
         if (!students || !choirMembers) return [];
         const memberAdmissionNumbers = new Set(choirMembers.map(m => m.admission_number));
@@ -109,148 +109,135 @@ export default function IndividualReportPage() {
         const pageHeight = doc.internal.pageSize.getHeight();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
-        let cursorY = margin;
-
-        // --- Serial and Generation info (High Header) ---
+        
+        // Serial at absolute top
         doc.setFontSize(7);
         doc.setTextColor(150);
-        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 10, { align: 'right' });
-        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 13, { align: 'right' });
+        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 8, { align: 'right' });
+        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 11, { align: 'right' });
         doc.setTextColor(0);
 
-        // --- PDF Header ---
+        let cursorY = 12;
+
+        // PDF Header - Tighter
         if (schoolLogo?.imageUrl) {
-            doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 20, 20);
+            doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 18, 18);
         }
         doc.setFont('times', 'bold');
-        doc.setFontSize(20);
-        doc.text("GATURA GIRLS", margin + 25, cursorY + 7);
+        doc.setFontSize(18);
+        doc.text("GATURA GIRLS", margin + 22, cursorY + 6);
     
         doc.setFont('times', 'normal');
-        doc.setFontSize(9);
-        doc.text("30-01013, Muranga.", margin + 25, cursorY + 12);
-        doc.text("gaturagirls@gmail.com", margin + 25, cursorY + 16);
-        doc.text("https://stteresagaturagirls.sc.ke/", margin + 25, cursorY + 20);
-        doc.text("0793328863", margin + 25, cursorY + 24);
+        doc.setFontSize(8.5);
+        doc.text("30-01013, Muranga.", margin + 22, cursorY + 10);
+        doc.text("gaturagirls@gmail.com | 0793328863", margin + 22, cursorY + 14);
         
         doc.setFont('times', 'bold');
-        doc.setFontSize(14);
-        doc.text(selectedChoir.name, pageWidth - margin, cursorY + 15, { align: 'right' });
-        doc.setFontSize(10);
+        doc.setFontSize(13);
+        doc.text(selectedChoir.name, pageWidth - margin, cursorY + 8, { align: 'right' });
+        doc.setFontSize(9);
         doc.setTextColor(100);
-        doc.text("Individual Attendance Report", pageWidth - margin, cursorY + 20, { align: 'right' });
+        doc.text("Individual Attendance Report", pageWidth - margin, cursorY + 12, { align: 'right' });
         doc.setTextColor(0);
     
-        cursorY += 35;
+        cursorY += 22;
 
-        // --- Student Details ---
+        // Student Details - Tighter
         doc.setFont('times', 'bold');
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.text('Student Details', margin, cursorY);
-        cursorY += 6;
+        cursorY += 5;
 
         doc.setFont('times', 'normal');
-        doc.setFontSize(11);
+        doc.setFontSize(9.5);
         doc.text(`Full Name: ${studentToReport.first_name} ${studentToReport.last_name}`, margin, cursorY);
         doc.text(`Admission Number: ${studentToReport.admission_number}`, pageWidth / 2, cursorY);
-        cursorY += 6;
-        doc.text(`Class / Grade: ${studentToReport.class} ${studentToReport.stream || ''}`, margin, cursorY);
-        cursorY += 6;
+        cursorY += 5;
+        doc.text(`Class: ${studentToReport.class} ${studentToReport.stream || ''}`, margin, cursorY);
+        cursorY += 5;
         
         doc.setLineWidth(0.2);
         doc.line(margin, cursorY, pageWidth - margin, cursorY);
         cursorY += 6;
 
-
-        // --- Attendance Summary ---
+        // Attendance Summary - Tighter
         doc.setFont('times', 'bold');
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.text('Attendance Summary', margin, cursorY);
-        cursorY += 8;
+        cursorY += 6;
 
         const summaryData = [
             { title: 'Total Sessions', value: totalSessions.toString() },
-            { title: 'Sessions Present', value: presentCount.toString() },
-            { title: 'Sessions Absent', value: absentCount.toString() },
-            { title: 'Attendance Rate', value: `${attendancePercentage}%` },
+            { title: 'Present', value: presentCount.toString() },
+            { title: 'Absent', value: absentCount.toString() },
+            { title: 'Rate (%)', value: `${attendancePercentage}%` },
         ];
         
         const cardWidth = (pageWidth - (2*margin) - 15) / 4;
         
-        doc.setFontSize(10);
+        doc.setFontSize(8.5);
         doc.setFont('times', 'normal');
-        doc.setTextColor(80, 80, 80);
+        doc.setTextColor(80);
         summaryData.forEach((item, index) => {
             const x = margin + (index * (cardWidth + 5));
-            doc.text(item.title, x + cardWidth/2, cursorY + 12, { align: 'center'});
+            doc.text(item.title, x + cardWidth/2, cursorY + 10, { align: 'center'});
         });
         
-        doc.setFontSize(16);
+        doc.setFontSize(14);
         doc.setFont('times', 'bold');
         doc.setTextColor(0);
         summaryData.forEach((item, index) => {
             const x = margin + (index * (cardWidth + 5));
-            doc.text(item.value, x + cardWidth/2, cursorY + 6, { align: 'center'});
+            doc.text(item.value, x + cardWidth/2, cursorY + 5, { align: 'center'});
         });
 
-        cursorY += 25;
+        cursorY += 18;
         doc.line(margin, cursorY, pageWidth - margin, cursorY);
         cursorY += 6;
 
-
-        // --- Attendance Table ---
+        // Attendance Table
         doc.setFont('times', 'bold');
-        doc.setFontSize(12);
+        doc.setFontSize(11);
         doc.text('Attendance Record', margin, cursorY);
-        cursorY += 6;
+        cursorY += 5;
 
         (doc as any).autoTable({
             html: '#individual-report-table',
             startY: cursorY,
             theme: 'grid',
-            headStyles: {
-                fillColor: '#107C41',
-                textColor: 255,
-                font: 'times',
-                fontStyle: 'bold'
-            },
-            styles: {
-                font: 'times',
-                fontStyle: 'normal',
-                cellPadding: 2,
-            },
+            headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
+            styles: { font: 'times', fontStyle: 'normal', cellPadding: 1.5, fontSize: 9 },
             margin: { left: margin, right: margin }
         });
         
         let finalY = (doc as any).lastAutoTable.finalY || cursorY;
 
-        // --- Footer ---
-        let footerY = finalY + 30;
-        if (footerY > pageHeight - 40) {
+        // Footer
+        let footerY = finalY + 20;
+        if (footerY > pageHeight - 30) {
             doc.addPage();
-            footerY = margin;
+            footerY = 20;
         }
         
         doc.setFont('times', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setLineWidth(0.2);
 
-        const signatureWidth = (pageWidth - margin * 3) / 2;
+        const signatureWidth = 50;
         doc.line(margin, footerY, margin + signatureWidth, footerY);
-        doc.text("Mr. Muthomi (Choir Director)", margin, footerY + 5);
+        doc.text("Mr. Muthomi (Choir Director)", margin, footerY + 4);
 
         doc.line(pageWidth - margin - signatureWidth, footerY, pageWidth - margin, footerY);
-        doc.text("Date", pageWidth - margin - signatureWidth, footerY + 5);
+        doc.text("Date", pageWidth - margin - signatureWidth, footerY + 4);
 
         const generatedOnText = `GENERATED BY GATURA HUB ON ${format(now, 'PPPP').toUpperCase()}, AT ${format(now, 'p').toUpperCase()}`;
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text(generatedOnText, pageWidth / 2, pageHeight - 15, { align: 'center' });
+        doc.text(generatedOnText, pageWidth / 2, pageHeight - 10, { align: 'center' });
 
         doc.save(`Choir-Report-${studentToReport.admission_number}-${format(now, 'yyyy-MM-dd')}.pdf`);
     }
 
-    // Filter sessions to only those relevant to the specific student for the report component.
     const studentAttendanceSessions = useMemo(() => {
         if (!attendanceSessions || !studentToReport) return [];
         const sortedSessions = [...attendanceSessions].sort((a, b) => a.date.toMillis() - b.date.toMillis());

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { CustomList, Student, ListSection } from '@/lib/types';
@@ -169,13 +170,15 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             }
     
             if (found.length > 0) {
-                const activeSection = sections.find(s => s.id === activeSectionId);
-                const newResults = found.filter(s => !activeSection?.student_admission_numbers.includes(s.admission_number));
+                const results = found.filter(s => {
+                    const activeSection = sections.find(sec => sec.id === activeSectionId);
+                    return !activeSection?.student_admission_numbers.includes(s.admission_number);
+                });
                 
-                if (newResults.length > 0) {
-                    setFoundStudents(newResults);
+                if (results.length > 0) {
+                    setFoundStudents(results);
                 } else {
-                     setFindError('Matching students are already in this specific section.');
+                     setFindError('Matching student is already in this section.');
                 }
             } else {
                  setFindError('No student found with that Admission Number or Name.');
@@ -313,6 +316,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
         const totalRowsCount = sections.reduce((acc, s) => acc + s.student_admission_numbers.length, 0);
         const sectionCount = sections.length;
         
+        // Use Header Stamp if 23-25 students AND 5 or fewer sections
         const useHeaderStamp = (totalRowsCount >= 23 && totalRowsCount <= 25) && (sectionCount <= 5);
 
         const drawPageFooter = (data: any) => {
@@ -325,64 +329,63 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             doc.text(pageNumText, pageWidth - margin, pageHeight - 8, { align: 'right' });
         };
 
-        // --- Serial and Generation info (High Header - Above everything) ---
+        // --- Serial and Generation info (Highest possible) ---
         doc.setFontSize(7);
         doc.setTextColor(150);
-        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 10, { align: 'right' });
-        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 13, { align: 'right' });
+        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 8, { align: 'right' });
+        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 11, { align: 'right' });
         doc.setTextColor(0);
 
         if (schoolLogo?.imageUrl) {
             try {
-                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, 15, 20, 20);
+                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, 12, 18, 18);
             } catch (error) { console.error(error); }
         }
         doc.setFont('times', 'bold');
-        doc.setFontSize(18);
-        doc.text('GATURA GIRLS', margin + 25, 15 + 7);
+        doc.setFontSize(16);
+        doc.text('GATURA GIRLS', margin + 22, 12 + 6);
         doc.setFont('times', 'normal');
-        doc.setFontSize(9);
-        doc.text('30-01013, Muranga.', margin + 25, 15 + 12);
-        doc.text('gaturagirls@gmail.com', margin + 25, 15 + 16);
-        doc.text('0793328863', margin + 25, 15 + 20);
+        doc.setFontSize(8.5);
+        doc.text('30-01013, Muranga.', margin + 22, 12 + 10);
+        doc.text('gaturagirls@gmail.com | 0793328863', margin + 22, 12 + 14);
 
         if (useHeaderStamp) {
-            const stampBoxWidth = 50;
-            const stampBoxHeight = 25;
+            const stampBoxWidth = 45;
+            const stampBoxHeight = 22;
             const stampX = pageWidth - margin - stampBoxWidth;
-            const stampY = 22; 
+            const stampY = 15; 
             
             doc.setLineWidth(0.2);
             doc.rect(stampX, stampY, stampBoxWidth, stampBoxHeight);
-            doc.setFontSize(7);
+            doc.setFontSize(6.5);
             doc.setTextColor(150);
-            doc.text('OFFICIAL SCHOOL STAMP', stampX + stampBoxWidth / 2, stampY + 6, { align: 'center' });
-            doc.text('Sign & Date Inside', stampX + stampBoxWidth / 2, stampY + 14, { align: 'center' });
+            doc.text('OFFICIAL SCHOOL STAMP', stampX + stampBoxWidth / 2, stampY + 5, { align: 'center' });
+            doc.text('Sign & Date Inside', stampX + stampBoxWidth / 2, stampY + 12, { align: 'center' });
             
             doc.setTextColor(0);
-            doc.setFontSize(9);
+            doc.setFontSize(8);
             doc.setFont('times', 'bold');
-            doc.text(`By: ${preparedBy || 'Matron'}`, stampX, stampY + stampBoxHeight + 5);
+            doc.text(`By: ${preparedBy || 'Matron'}`, stampX, stampY + stampBoxHeight + 4);
         }
 
-        doc.setLineWidth(0.5);
-        doc.line(margin, 52, pageWidth - margin, 52);
+        doc.setLineWidth(0.4);
+        doc.line(margin, 38, pageWidth - margin, 38);
         
         doc.setFont('times', 'bold');
-        doc.setFontSize(14);
+        doc.setFontSize(13);
         const titleLines = doc.splitTextToSize(listTitle, pageWidth - margin * 2);
-        doc.text(titleLines, pageWidth / 2, 60, { align: 'center' });
-        let currentY = 60 + (doc.getTextDimensions(titleLines).h);
+        doc.text(titleLines, pageWidth / 2, 45, { align: 'center' });
+        let currentY = 45 + (doc.getTextDimensions(titleLines).h);
 
         if (eventDate) {
             doc.setFont('times', 'normal');
-            doc.setFontSize(11);
+            doc.setFontSize(10);
             doc.setTextColor(80);
-            doc.text(`Event Date: ${format(eventDate, 'EEEE, MMMM d, yyyy')}`, pageWidth / 2, currentY + 4, { align: 'center' });
-            currentY += 12;
+            doc.text(`Event Date: ${format(eventDate, 'EEEE, MMMM d, yyyy')}`, pageWidth / 2, currentY + 3, { align: 'center' });
+            currentY += 10;
             doc.setTextColor(0);
         } else {
-            currentY += 6;
+            currentY += 5;
         }
 
         for (const section of sections) {
@@ -398,9 +401,9 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             }
 
             doc.setFont('times', 'bold');
-            doc.setFontSize(11);
+            doc.setFontSize(10);
             doc.text(section.title, margin, currentY);
-            currentY += 4;
+            currentY += 3;
 
             (doc as any).autoTable({
                 head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
@@ -408,17 +411,17 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                 startY: currentY,
                 theme: 'grid',
                 headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
-                styles: { font: 'times', fontStyle: 'normal', cellPadding: 2, fontSize: 9.5 },
+                styles: { font: 'times', fontStyle: 'normal', cellPadding: 1.5, fontSize: 9 },
                 margin: { left: margin, right: margin },
                 didDrawPage: drawPageFooter,
             });
 
-            currentY = (doc as any).lastAutoTable.finalY + 10;
+            currentY = (doc as any).lastAutoTable.finalY + 8;
         }
 
         if (!useHeaderStamp) {
-            const stampBoxWidth = 55;
-            const stampBoxHeight = 30;
+            const stampBoxWidth = 50;
+            const stampBoxHeight = 25;
             
             if (currentY > pageHeight - (stampBoxHeight + 20)) {
                 doc.addPage();
@@ -426,7 +429,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             }
 
             doc.setLineWidth(0.2);
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setFont('times', 'bold');
             doc.text(`Prepared By: ${preparedBy || 'Matron'}`, margin, currentY + 5);
             
@@ -438,9 +441,9 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             
             doc.setTextColor(0);
             doc.setLineWidth(0.2);
-            doc.line(margin, currentY + 22, margin + 50, currentY + 22);
+            doc.line(margin, currentY + 20, margin + 45, currentY + 20);
             doc.setFontSize(8);
-            doc.text('Signature & Date', margin, currentY + 26);
+            doc.text('Signature & Date', margin, currentY + 24);
         }
 
         doc.save(`${listTitle.replace(/\s+/g, '-') || 'custom-list'}.pdf`);
