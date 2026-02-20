@@ -19,6 +19,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -227,10 +228,10 @@ function SectionCard({
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowQuickAdd(false)}><X className="h-3 w-3"/></Button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                            <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} bs-sm />
-                            <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} bs-sm />
-                            <Input placeholder="Class (e.g. F3)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} bs-sm />
-                            <Input placeholder="Stream (e.g. Blue)" value={quickStream} onChange={(e) => setQuickStream(e.target.value)} bs-sm />
+                            <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} />
+                            <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} />
+                            <Input placeholder="Class (e.g. F3)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} />
+                            <Input placeholder="Stream (e.g. Blue)" value={quickStream} onChange={(e) => setQuickStream(e.target.value)} />
                         </div>
                         <Button size="sm" className="w-full" onClick={handleQuickAddLocal} disabled={isQuickAdding}>
                             {isQuickAdding ? <Loader2 className="animate-spin h-4 w-4" /> : <UserPlus className="h-4 w-4 mr-2" />} 
