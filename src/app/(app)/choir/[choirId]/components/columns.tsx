@@ -55,12 +55,13 @@ export const columns = ({ choirId, choirName }: ColumnsFnProps ): ColumnDef<Stud
     header: 'Full Name',
   },
   {
-    accessorKey: 'class',
+    accessorFn: row => `${row.class} ${row.stream || ''}`.trim(),
+    id: 'class',
     header: 'Class',
   },
   {
     id: 'status',
-    accessorFn: row => row.choirMember?.status ?? 'not_member',
+    accessorFn: row => row.original.choirMember?.status ?? 'not_member',
     header: 'Choir Status',
     cell: ({ row }) => {
       const status = row.original.choirMember?.status ? row.original.choirMember.status : 'not_member';
@@ -90,6 +91,7 @@ export const columns = ({ choirId, choirName }: ColumnsFnProps ): ColumnDef<Stud
             first_name: student.first_name,
             last_name: student.last_name,
             class: student.class,
+            stream: student.stream,
           };
           const result = await addStudentToChoir(choirId, plainStudent as Student, userId);
           if (result.success) {

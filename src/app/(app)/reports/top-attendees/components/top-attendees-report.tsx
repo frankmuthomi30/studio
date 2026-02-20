@@ -68,7 +68,7 @@ export default function TopAttendeesReport({ attendees, choirName }: TopAttendee
                             <TableCell className="font-bold text-lg text-center">{index + 1}</TableCell>
                             <TableCell>{attendee.admission_number}</TableCell>
                             <TableCell className="font-medium">{`${attendee.first_name} ${attendee.last_name}`}</TableCell>
-                            <TableCell>{attendee.class}</TableCell>
+                            <TableCell>{attendee.class} {attendee.stream || ''}</TableCell>
                             <TableCell className="text-center font-semibold text-primary">{attendee.present}</TableCell>
                             <TableCell className="text-center">{attendee.total}</TableCell>
                             <TableCell className="text-right">

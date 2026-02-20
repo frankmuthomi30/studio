@@ -103,7 +103,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
             </div>
             {foundStudent && !presentAdmissionNumbers.has(foundStudent.admission_number) && (
                 <div className="mt-2 p-3 bg-muted rounded-md text-sm">
-                   <p><span className="font-semibold">Found:</span> {foundStudent.first_name} {foundStudent.last_name} ({foundStudent.class})</p>
+                   <p><span className="font-semibold">Found:</span> {foundStudent.first_name} {foundStudent.last_name} ({foundStudent.class} {foundStudent.stream || ''})</p>
                 </div>
             )}
         </div>
@@ -113,7 +113,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
             <h3 className="text-lg font-medium">Present Students ({presentStudents.length})</h3>
             <div className="rounded-md border max-h-96 overflow-y-auto">
               <Table>
-                <TableHeader className="sticky top-0 bg-muted z-10">
+                <TableHeader>
                   <TableRow>
                     <TableHead>Admission No.</TableHead>
                     <TableHead>Full Name</TableHead>
@@ -126,7 +126,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
                     <TableRow key={member.admission_number}>
                       <TableCell>{member.admission_number}</TableCell>
                       <TableCell className="font-medium">{`${member.first_name} ${member.last_name}`}</TableCell>
-                      <TableCell>{member.class}</TableCell>
+                      <TableCell>{member.class} {member.stream || ''}</TableCell>
                       <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => handleRemove(member.admission_number)}>
                             <UserX className="mr-2 h-4 w-4"/> Undo

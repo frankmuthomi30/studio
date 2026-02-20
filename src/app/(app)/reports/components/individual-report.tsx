@@ -80,7 +80,7 @@ export default function IndividualReport({ student, choirName, attendanceSession
         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
             <div><span className="font-semibold text-gray-600">Full Name:</span> {student.first_name} {student.last_name}</div>
             <div><span className="font-semibold text-gray-600">Admission Number:</span> {student.admission_number}</div>
-            <div><span className="font-semibold text-gray-600">Class / Grade:</span> {student.class}</div>
+            <div><span className="font-semibold text-gray-600">Class / Grade:</span> {student.class} {student.stream || ''}</div>
         </div>
       </section>
 

@@ -66,6 +66,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     const [quickFirstName, setQuickFirstName] = useState('');
     const [quickLastName, setQuickLastName] = useState('');
     const [quickClass, setQuickClass] = useState('');
+    const [quickStream, setQuickStream] = useState('');
     const [isQuickAdding, setIsQuickAdding] = useState(false);
 
     // Fetch student details for all sections (unique IDs for fetching)
@@ -210,6 +211,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             first_name: quickFirstName,
             last_name: quickLastName,
             class: quickClass,
+            stream: quickStream,
             uploaded_at: serverTimestamp() as any,
             uploaded_by: user.uid
         };
@@ -228,6 +230,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
             setQuickFirstName('');
             setQuickLastName('');
             setQuickClass('');
+            setQuickStream('');
             setShowQuickAdd(false);
             setSearchTerm('');
         } catch (error: any) {
@@ -407,7 +410,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
 
             (doc as any).autoTable({
                 head: [['#', 'Admission No.', 'Full Name', 'Class', 'Signature']],
-                body: sectionStudents.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, s.class, '']),
+                body: sectionStudents.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map((s, i) => [i + 1, s.admission_number, `${s.first_name} ${s.last_name}`, `${s.class} ${s.stream || ''}`.trim(), '']),
                 startY: currentY,
                 theme: 'grid',
                 headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
@@ -556,6 +559,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                                                 <Input placeholder="First Name" value={quickFirstName} onChange={(e) => setQuickFirstName(e.target.value)} />
                                                 <Input placeholder="Last Name" value={quickLastName} onChange={(e) => setQuickLastName(e.target.value)} />
                                                 <Input placeholder="Class (e.g. Form 4)" value={quickClass} onChange={(e) => setQuickClass(e.target.value)} />
+                                                <Input placeholder="Stream (e.g. Blue)" value={quickStream} onChange={(e) => setQuickStream(e.target.value)} />
                                             </div>
                                             <div className="flex gap-2">
                                                 <Button size="sm" className="flex-1" onClick={handleQuickAdd} disabled={isQuickAdding}>
@@ -575,7 +579,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                                                 <div key={student.id} className="flex justify-between items-center bg-background p-2 rounded-md">
                                                     <div className="flex-1 min-w-0 mr-2">
                                                         <p className="font-medium truncate">{student.first_name} {student.last_name}</p>
-                                                        <p className="text-xs text-muted-foreground">{student.admission_number}</p>
+                                                        <p className="text-xs text-muted-foreground">{student.admission_number} - {student.class} {student.stream || ''}</p>
                                                     </div>
                                                     <Button size="sm" onClick={() => handleAddStudent(student, activeSectionId)}>Add</Button>
                                                 </div>
@@ -629,7 +633,7 @@ function ListEditor({ list, onBack }: ListEditorProps) {
                                                         <span className="text-xs text-muted-foreground w-4">{sIdx + 1}.</span>
                                                         <div>
                                                             <p className="font-medium">{student ? `${student.first_name} ${student.last_name}` : adm}</p>
-                                                            <p className="text-xs text-muted-foreground">{adm} - {student?.class || '...'}</p>
+                                                            <p className="text-xs text-muted-foreground">{adm} - {student?.class || ''} {student?.stream || ''}</p>
                                                         </div>
                                                     </div>
                                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={() => handleRemoveStudent(adm, section.id)}>

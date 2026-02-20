@@ -73,7 +73,7 @@ export default function AllMembersReport({ students, choirName }: AllMembersRepo
                         <TableRow key={student.admission_number}>
                             <TableCell>{student.admission_number}</TableCell>
                             <TableCell className="font-medium">{`${student.first_name} ${student.last_name}`}</TableCell>
-                            <TableCell>{student.class}</TableCell>
+                            <TableCell>{student.class} {student.stream || ''}</TableCell>
                             <TableCell className="text-right">
                                 <Badge variant={student.choirMember?.status === 'active' ? 'default' : 'secondary'}>
                                     {student.choirMember?.status === 'active' ? 'Active' : 'Inactive'}

@@ -194,7 +194,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
                             <TableRow key={member.admission_number}>
                                 <TableCell>{member.admission_number}</TableCell>
                                 <TableCell>{member.first_name} {member.last_name}</TableCell>
-                                <TableCell>{member.class}</TableCell>
+                                <TableCell>{member.class} {member.stream || ''}</TableCell>
                             </TableRow>
                         )
                     })}
