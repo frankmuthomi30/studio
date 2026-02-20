@@ -5,8 +5,8 @@ import './reports/print.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Gatura Girls Choir',
-  description: 'School Choir Attendance Management System',
+  title: 'Gatura Harmony Hub',
+  description: 'Gatura Girls High School Choir Attendance and Management System',
 };
 
 export default function RootLayout({

@@ -38,16 +38,16 @@ export default function LandingPage() {
         <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center space-y-6">
           <div className="space-y-2 text-center">
             <h1 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-              Welcome to Gatura Girls Choir
+              Welcome to Gatura Harmony Hub
             </h1>
             <p className="text-muted-foreground md:text-xl">
-              The complete solution for managing your school choir's attendance.
+              The complete solution for managing Gatura Girls High School choir's attendance and lists.
             </p>
           </div>
           <div className="w-full space-y-4">
-            <Button asChild size="lg">
+            <Button asChild size="lg" className="w-full">
                 <Link href="/login">
-                    <LogIn />
+                    <LogIn className="mr-2" />
                     Proceed to Login
                 </Link>
             </Button>
@@ -58,7 +58,7 @@ export default function LandingPage() {
         </div>
       </main>
       <footer className="p-4 text-center text-sm text-muted-foreground sm:p-6">
-        © {new Date().getFullYear()} Gatura Girls Choir. All Rights Reserved.
+        © {new Date().getFullYear()} Gatura Harmony Hub. All Rights Reserved.
       </footer>
     </div>
   );

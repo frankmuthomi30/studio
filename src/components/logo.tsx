@@ -8,7 +8,7 @@ export default function Logo() {
         <Music2 className="h-5 w-5 text-primary-foreground" />
       </div>
       <span className="text-xl font-bold tracking-tight text-foreground">
-        Gatura Girls Choir
+        Gatura Harmony Hub
       </span>
     </Link>
   );
