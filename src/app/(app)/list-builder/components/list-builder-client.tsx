@@ -18,7 +18,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -315,7 +314,19 @@ function ListEditor({ list, onBack }: ListEditorProps) {
     );
     
     const [sections, setSections] = useState<ListSection[]>(() => {
+        // NEW: Check for existing sections
         if (list.sections && list.sections.length > 0) return list.sections;
+        
+        // NEW: Migrate legacy list format into a default section
+        if (list.student_admission_numbers && list.student_admission_numbers.length > 0) {
+            return [{ 
+                id: 'default', 
+                title: 'Main List', 
+                student_admission_numbers: list.student_admission_numbers 
+            }];
+        }
+
+        // Default: empty list with one section
         return [{ id: 'default', title: 'Main List', student_admission_numbers: [] }];
     });
 
@@ -668,7 +679,8 @@ export default function ListBuilderClient() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 truncate group-hover:text-primary transition-colors"><Users className="text-primary shrink-0 h-5 w-5"/> {list.title}</CardTitle>
                                     <CardDescription>
-                                        {list.sections?.length || 1} section(s). 
+                                        {/* Updated count logic to handle both formats */}
+                                        {(list.sections && list.sections.length > 0) ? list.sections.length : 1} section(s). 
                                         {list.event_date && <span className="block mt-1 text-xs text-primary font-medium">{format(list.event_date.toDate(), 'PPP')}</span>}
                                     </CardDescription>
                                 </CardHeader>
