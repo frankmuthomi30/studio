@@ -28,20 +28,20 @@ service cloud.firestore {
     // --------------------------------
 
     match /students/{admissionNumber} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && isOwner(request.resource.data.uploaded_by);
       allow update: if isSignedIn() && resource != null && isOwner(resource.data.uploaded_by) && isImmutable('uploaded_by');
       allow delete: if isSignedIn() && resource != null && isOwner(resource.data.uploaded_by);
     }
 
     match /choirs/{choirId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && isOwner(request.resource.data.created_by);
       allow update: if isSignedIn() && resource != null && isOwner(resource.data.created_by) && isImmutable('created_by');
       allow delete: if isSignedIn() && resource != null && isOwner(resource.data.created_by);
 
       match /members/{admissionNumber} {
-        allow get, list: if isSignedIn();
+        allow read: if isSignedIn();
         allow create: if isSignedIn() && isOwner(request.resource.data.added_by);
         allow update: if isSignedIn() && resource != null && isOwner(resource.data.added_by) && isImmutable('added_by');
         allow delete: if isSignedIn() && resource != null && isOwner(resource.data.added_by);
@@ -50,18 +50,18 @@ service cloud.firestore {
 
     // Support collectionGroup queries for members across all choirs (Dashboard)
     match /{path=**}/members/{admissionNumber} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
     }
 
     match /choir_attendance/{attendanceId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && isOwner(request.resource.data.recorded_by);
       allow update: if isSignedIn() && resource != null && isOwner(resource.data.recorded_by) && isImmutable('recorded_by');
       allow delete: if isSignedIn() && resource != null && isOwner(resource.data.recorded_by);
     }
 
     match /custom_lists/{listId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow write: if isSignedIn(); // Shared workspace for custom event planning
     }
   }

@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { Check, X, Loader2, UserPlus, UserX, Printer, FileDown } from 'lucide-react';
-import jsPDF from 'jsPDF';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 type AttendanceSheetProps = {
   // Accept a session object that has been processed on the client (Date object)
