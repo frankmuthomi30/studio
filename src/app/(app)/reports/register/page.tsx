@@ -18,13 +18,16 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebas
 import type { Choir } from '@/lib/types';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function RegisterReportPage() {
     const firestore = useFirestore();
     const { isUserLoading: authLoading } = useUser();
     const [date, setDate] = useState<DateRange | undefined>()
     const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
-    const [reportFilters, setReportFilters] = useState<{dateRange?: DateRange, choirId?: string, choirName?: string}>({});
+    const [preparerName, setPreparerName] = useState('Mr. Muthomi (Choir Director)');
+    const [reportFilters, setReportFilters] = useState<{dateRange?: DateRange, choirId?: string, choirName?: string, preparedBy?: string}>({});
 
     const { data: choirs, isLoading: choirsLoading } = useCollection<Choir>(
         useMemoFirebase(() => !authLoading && firestore ? query(collection(firestore, 'choirs'), orderBy('name', 'asc')) : null, [firestore, authLoading])
@@ -32,7 +35,7 @@ export default function RegisterReportPage() {
 
     const handleGenerate = () => {
         const choir = choirs?.find(c => c.id === selectedChoirId);
-        setReportFilters({ dateRange: date, choirId: selectedChoirId ?? undefined, choirName: choir?.name });
+        setReportFilters({ dateRange: date, choirId: selectedChoirId ?? undefined, choirName: choir?.name, preparedBy: preparerName });
     }
 
     const handlePrint = () => {
@@ -130,8 +133,7 @@ export default function RegisterReportPage() {
         const footerY = pageHeight - 15;
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
-        const preparedBy = "Prepared by: Mr. Muthomi (Choir Director)";
-        doc.text(preparedBy, margin, footerY);
+        doc.text(`Prepared by: ${reportFilters.preparedBy || 'Mr. Muthomi (Choir Director)'}`, margin, footerY);
 
         doc.save(`Gatura-Girls-Choir-Register-${format(now, 'yyyy-MM-dd')}.pdf`);
     };
@@ -150,76 +152,88 @@ export default function RegisterReportPage() {
                 <CardTitle>Report Filters</CardTitle>
                 <CardDescription>Select filters to generate the register. The report will be based on the first session found in the selected range.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap items-end gap-4">
+            <CardContent className="space-y-6">
                 {isLoading ? <Loader2 className="animate-spin" /> : (
                     <>
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">Choir</label>
-                            <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined}>
-                                <SelectTrigger className="w-full sm:w-auto sm:min-w-[250px]">
-                                    <SelectValue placeholder="Select a choir..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {choirs?.map(choir => (
-                                        <SelectItem key={choir.id} value={choir.id}>
-                                            {choir.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <label className="text-sm font-medium">Date range</label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-[300px] justify-start text-left font-normal",
-                                    !date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date?.from ? (
-                                    date.to ? (
-                                        <>
-                                        {format(date.from, "LLL dd, y")} -{" "}
-                                        {format(date.to, "LLL dd, y")}
-                                        </>
-                                    ) : (
-                                        format(date.from, "LLL dd, y")
-                                    )
-                                    ) : (
-                                    <span>Pick a date range</span>
-                                    )}
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={date?.from}
-                                    selected={date}
-                                    onSelect={setDate}
-                                    numberOfMonths={2}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div className="grid gap-2">
+                                <Label>Choir</Label>
+                                <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select a choir..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {choirs?.map(choir => (
+                                            <SelectItem key={choir.id} value={choir.id}>
+                                                {choir.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Date range</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date?.from ? (
+                                        date.to ? (
+                                            <>
+                                            {format(date.from, "LLL dd, y")} -{" "}
+                                            {format(date.to, "LLL dd, y")}
+                                            </>
+                                        ) : (
+                                            format(date.from, "LLL dd, y")
+                                        )
+                                        ) : (
+                                        <span>Pick a date range</span>
+                                        )}
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={date?.from}
+                                        selected={date}
+                                        onSelect={setDate}
+                                        numberOfMonths={2}
+                                    />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Prepared By (Footer)</Label>
+                                <Input 
+                                    value={preparerName} 
+                                    onChange={(e) => setPreparerName(e.target.value)}
+                                    placeholder="e.g. Mr. Muthomi"
                                 />
-                                </PopoverContent>
-                            </Popover>
+                            </div>
                         </div>
-                        <Button onClick={handleGenerate} disabled={!date?.from || !selectedChoirId}>
-                            <Search className="mr-2 h-4 w-4" />
-                            Generate Report
-                        </Button>
-                        <div className="ml-auto flex gap-2">
-                            <Button variant="outline" onClick={handlePrint} disabled={!reportFilters.dateRange?.from}>
-                                <Printer className="mr-2 h-4 w-4" />
-                                Print
+                        <div className='flex items-center gap-4'>
+                            <Button onClick={handleGenerate} disabled={!date?.from || !selectedChoirId}>
+                                <Search className="mr-2 h-4 w-4" />
+                                Generate Report
                             </Button>
-                            <Button variant="outline" onClick={handleExportPdf} disabled={!reportFilters.dateRange?.from}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Export PDF
-                            </Button>
+                            <div className="ml-auto flex gap-2">
+                                <Button variant="outline" onClick={handlePrint} disabled={!reportFilters.dateRange?.from}>
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Print
+                                </Button>
+                                <Button variant="outline" onClick={handleExportPdf} disabled={!reportFilters.dateRange?.from}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export PDF
+                                </Button>
+                            </div>
                         </div>
                     </>
                 )}

@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { Check, X, Loader2, UserPlus, UserX, Printer, FileDown } from 'lucide-react';
-import jsPDF from 'jspdf';
+import jsPDF from 'jsPDF';
 import 'jspdf-autotable';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Label } from '@/components/ui/label';
 
 type AttendanceSheetProps = {
   // Accept a session object that has been processed on the client (Date object)
@@ -31,6 +32,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
     );
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [preparerName, setPreparerName] = useState('Mr. Muthomi (Choir Director)');
   
   const foundStudent = useMemo(() => {
     if (!searchTerm) return null;
@@ -160,7 +162,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
     doc.setFont('times', 'normal');
     doc.setFontSize(9);
     doc.line(margin, footerY, margin + 50, footerY);
-    doc.text("Mr. Muthomi (Choir Director)", margin, footerY + 4);
+    doc.text(preparerName, margin, footerY + 4);
 
     doc.save(`Attendance-${session.practice_type.replace(/\s+/g, '-')}-${format(session.date, 'yyyy-MM-dd')}.pdf`);
   };
@@ -192,29 +194,42 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Search and Add section */}
-        <div className="no-print">
-            <h3 className="text-lg font-medium mb-2">Mark Attendance</h3>
-            <div className="flex items-start gap-2">
-                <div className="grid gap-1.5 flex-grow">
-                    <Input
-                        placeholder="Enter Admission No..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleMarkPresent()}}
-                    />
-                    {searchTerm && !foundStudent && <p className="text-xs text-destructive">No active choir member found with this Admission No.</p>}
-                    {foundStudent && presentAdmissionNumbers.has(foundStudent.admission_number) && <p className="text-xs text-blue-600">{foundStudent.first_name} {foundStudent.last_name} is already marked present.</p>}
-                </div>
-                <Button onClick={handleMarkPresent} disabled={!foundStudent || presentAdmissionNumbers.has(foundStudent.admission_number)}>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Mark Present
-                </Button>
+        <div className="no-print space-y-4">
+            <div className="grid gap-2 max-w-sm">
+                <Label>Report Preparer Name</Label>
+                <Input 
+                    value={preparerName} 
+                    onChange={(e) => setPreparerName(e.target.value)}
+                    placeholder="e.g. Mr. Muthomi"
+                />
             </div>
-            {foundStudent && !presentAdmissionNumbers.has(foundStudent.admission_number) && (
-                <div className="mt-2 p-3 bg-muted rounded-md text-sm">
-                   <p><span className="font-semibold">Found:</span> {foundStudent.first_name} {foundStudent.last_name} ({foundStudent.class} {foundStudent.stream || ''})</p>
+            
+            <Separator />
+
+            <div>
+                <h3 className="text-lg font-medium mb-2">Mark Attendance</h3>
+                <div className="flex items-start gap-2">
+                    <div className="grid gap-1.5 flex-grow">
+                        <Input
+                            placeholder="Enter Admission No..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleMarkPresent()}}
+                        />
+                        {searchTerm && !foundStudent && <p className="text-xs text-destructive">No active choir member found with this Admission No.</p>}
+                        {foundStudent && presentAdmissionNumbers.has(foundStudent.admission_number) && <p className="text-xs text-blue-600">{foundStudent.first_name} {foundStudent.last_name} is already marked present.</p>}
+                    </div>
+                    <Button onClick={handleMarkPresent} disabled={!foundStudent || presentAdmissionNumbers.has(foundStudent.admission_number)}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Mark Present
+                    </Button>
                 </div>
-            )}
+                {foundStudent && !presentAdmissionNumbers.has(foundStudent.admission_number) && (
+                    <div className="mt-2 p-3 bg-muted rounded-md text-sm">
+                       <p><span className="font-semibold">Found:</span> {foundStudent.first_name} {foundStudent.last_name} ({foundStudent.class} {foundStudent.stream || ''})</p>
+                    </div>
+                )}
+            </div>
         </div>
 
         {/* Present students list */}

@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 type TopAttendeesReportProps = {
   attendees: TopAttendee[];
   choirName: string;
+  preparedBy: string;
 };
 
-export default function TopAttendeesReport({ attendees, choirName }: TopAttendeesReportProps) {
+export default function TopAttendeesReport({ attendees, choirName, preparedBy }: TopAttendeesReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
     const [serialNumber, setSerialNumber] = useState<string>('');
@@ -96,7 +97,7 @@ export default function TopAttendeesReport({ attendees, choirName }: TopAttendee
 
         <footer className="mt-6 pt-2 text-[10px] text-gray-500 border-t">
             <div className="flex justify-between items-center">
-                <p>Prepared by: Mr. Muthomi (Choir Director)</p>
+                <p>Prepared by: {preparedBy}</p>
                 <p className="font-bold">Total Ranked: {attendees.length}</p>
             </div>
             <div className="text-center text-[9px] mt-2">

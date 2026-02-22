@@ -16,6 +16,7 @@ type RegisterReportProps = {
         dateRange?: DateRange;
         choirId?: string;
         choirName?: string;
+        preparedBy?: string;
     }
 }
 
@@ -258,7 +259,7 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
 
         <footer className="mt-8 pt-4 text-sm text-gray-500 border-t">
             <div className="flex justify-between">
-                <p>Prepared by: Mr. Muthomi (Choir Director)</p>
+                <p>Prepared by: {filters.preparedBy || 'Mr. Muthomi (Choir Director)'}</p>
                 <p>Page 1 of 1</p>
             </div>
             <div className="text-center text-[10px] mt-4 space-y-1">

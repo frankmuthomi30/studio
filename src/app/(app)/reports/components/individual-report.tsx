@@ -15,9 +15,10 @@ type IndividualReportProps = {
   choirName: string;
   attendanceSessions: AttendanceSession[] | null;
   isLoading: boolean;
+  preparedBy: string;
 };
 
-export default function IndividualReport({ student, choirName, attendanceSessions, isLoading }: IndividualReportProps) {
+export default function IndividualReport({ student, choirName, attendanceSessions, isLoading, preparedBy }: IndividualReportProps) {
   const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
   const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
   const [serialNumber, setSerialNumber] = useState<string>('');
@@ -157,7 +158,7 @@ export default function IndividualReport({ student, choirName, attendanceSession
         <div className="grid grid-cols-2 gap-12">
             <div className="space-y-1">
                 <div className="w-full border-b border-gray-400"></div>
-                <p className="font-semibold text-[10px]">Mr. Muthomi (Choir Director)</p>
+                <p className="font-semibold text-[10px]">{preparedBy}</p>
             </div>
             <div className="space-y-1">
                 <div className="w-full border-b border-gray-400"></div>

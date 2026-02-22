@@ -14,12 +14,15 @@ import { format } from 'date-fns';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 export default function AllMembersReportPage() {
     const firestore = useFirestore();
     const { isUserLoading: authLoading } = useUser();
     const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
+    const [preparerName, setPreparerName] = useState('Mr. Muthomi (Choir Director)');
     const [choirToReport, setChoirToReport] = useState<Choir | null>(null);
 
     // 1. Fetch all choirs
@@ -132,7 +135,7 @@ export default function AllMembersReportPage() {
         const footerY = pageHeight - 15;
         doc.setFont('times', 'normal');
         doc.setFontSize(9);
-        const preparedBy = "Prepared by: Mr. Muthomi (Choir Director)";
+        const preparedBy = `Prepared by: ${preparerName}`;
         doc.text(preparedBy, margin, footerY);
     
         doc.save(`Gatura-Girls-${choirToReport.name}-All-Members-${format(now, 'yyyy-MM-dd')}.pdf`);
@@ -150,33 +153,48 @@ export default function AllMembersReportPage() {
             <div className="container mx-auto p-4 md:p-8 space-y-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Select Choir</CardTitle>
-                        <CardDescription>Choose a choir to see a list of all its members, past and present.</CardDescription>
+                        <CardTitle>Select Choir & Preparer</CardTitle>
+                        <CardDescription>Choose a choir and specify who is preparing this report.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-6">
                         {isLoading ? <Loader2 className="animate-spin" /> : (
-                            <div className="flex flex-wrap items-center gap-4">
-                                <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined}>
-                                    <SelectTrigger className="w-full sm:w-auto sm:min-w-[300px]">
-                                        <SelectValue placeholder="Select a choir..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {choirs?.map(choir => (
-                                            <SelectItem key={choir.id} value={choir.id}>
-                                                {choir.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button onClick={handleGenerateReport} disabled={!selectedChoirId || isGenerating}>
-                                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                                    {isGenerating ? 'Loading...' : 'Generate Report'}
-                                </Button>
-                                <Button onClick={handleExportPdf} variant="outline" disabled={!choirToReport || isGenerating}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Export PDF
-                                </Button>
-                            </div>
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                    <div className="space-y-2">
+                                        <Label>Choir</Label>
+                                        <Select onValueChange={setSelectedChoirId} value={selectedChoirId ?? undefined}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select a choir..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {choirs?.map(choir => (
+                                                    <SelectItem key={choir.id} value={choir.id}>
+                                                        {choir.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Prepared By (Footer)</Label>
+                                        <Input 
+                                            value={preparerName} 
+                                            onChange={(e) => setPreparerName(e.target.value)}
+                                            placeholder="e.g. Mr. Muthomi"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <Button onClick={handleGenerateReport} disabled={!selectedChoirId || isGenerating}>
+                                        {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                        {isGenerating ? 'Loading...' : 'Generate Report'}
+                                    </Button>
+                                    <Button onClick={handleExportPdf} variant="outline" disabled={!choirToReport || isGenerating}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Export PDF
+                                    </Button>
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -188,11 +206,15 @@ export default function AllMembersReportPage() {
                                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                             </div>
                         ) : (
-                            <AllMembersReport students={allChoirStudents} choirName={choirToReport.name} />
+                            <AllMembersReport 
+                                students={allChoirStudents} 
+                                choirName={choirToReport.name} 
+                                preparedBy={preparerName}
+                            />
                         )
                     ) : (
                         <div className="text-center p-8 text-muted-foreground border rounded-lg">
-                           <p>Select a choir and click "Generate Report" to see a list of all its members.</p>
+                           <p>Select report criteria above and click "Generate Report".</p>
                         </div>
                     )}
                 </div>

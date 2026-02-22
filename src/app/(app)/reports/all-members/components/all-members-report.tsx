@@ -10,9 +10,10 @@ import { format } from 'date-fns';
 type AllMembersReportProps = {
   students: StudentWithChoirStatus[];
   choirName: string;
+  preparedBy: string;
 };
 
-export default function AllMembersReport({ students, choirName }: AllMembersReportProps) {
+export default function AllMembersReport({ students, choirName, preparedBy }: AllMembersReportProps) {
     const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
     const [generatedDate, setGeneratedDate] = useState<Date | null>(null);
     const [serialNumber, setSerialNumber] = useState<string>('');
@@ -98,7 +99,7 @@ export default function AllMembersReport({ students, choirName }: AllMembersRepo
 
         <footer className="mt-6 pt-2 text-[10px] text-gray-500 border-t">
             <div className="flex justify-between items-center">
-                <p>Prepared by: Mr. Muthomi (Choir Director)</p>
+                <p>Prepared by: {preparedBy}</p>
                 <p className="font-bold">Total Members: {students.length}</p>
             </div>
             <div className="text-center text-[9px] mt-2">
