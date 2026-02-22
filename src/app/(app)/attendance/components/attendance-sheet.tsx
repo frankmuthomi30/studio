@@ -15,16 +15,14 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 
 type AttendanceSheetProps = {
-  // Accept a session object that has been processed on the client (Date object)
   session: Omit<AttendanceSession, 'date' | 'recorded_at' | 'uploaded_at'> & { date: Date };
-  activeChoirStudents: Student[]; // All active choir members
+  activeChoirStudents: Student[];
   onSave: (attendanceMap: Record<string, boolean>) => void;
   onCancel: () => void;
   isSaving: boolean;
 };
 
 export default function AttendanceSheet({ session, activeChoirStudents, onSave, onCancel, isSaving }: AttendanceSheetProps) {
-  // Initialize the set of present students from the session's attendance map
   const [presentAdmissionNumbers, setPresentAdmissionNumbers] = useState<Set<string>>(() => {
     return new Set(
         Object.entries(session.attendance_map || {})
@@ -62,7 +60,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
   };
 
   const handleSave = () => {
-    // Create a map for ALL active students for this session, not just the ones present.
     const attendanceMap = activeChoirStudents.reduce((acc, member) => {
       acc[member.admission_number] = presentAdmissionNumbers.has(member.admission_number);
       return acc;
@@ -84,7 +81,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
 
-    // Serial Header
     doc.setFontSize(7);
     doc.setTextColor(150);
     doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 8, { align: 'right' });
@@ -93,7 +89,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
 
     let cursorY = 12;
 
-    // School Header
     if (schoolLogo?.imageUrl) {
         try {
             doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 18, 18);
@@ -116,7 +111,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
 
     cursorY += 22;
 
-    // Session Info
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.text(`${session.choirName} - ${session.practice_type}`, pageWidth / 2, cursorY, { align: 'center' });
@@ -125,7 +119,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
     doc.text(format(session.date, 'EEEE, MMMM d, yyyy'), pageWidth / 2, cursorY, { align: 'center' });
     cursorY += 8;
 
-    // Table
     const tableRows = presentStudents.map(s => [
         s.admission_number,
         `${s.first_name} ${s.last_name}`,
@@ -152,13 +145,11 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
 
     const finalY = (doc as any).lastAutoTable.finalY;
 
-    // Summary
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(0);
     doc.text(`Total Present: ${presentStudents.length} / ${activeChoirStudents.length}`, margin, finalY + 10);
 
-    // Signature
     const footerY = pageHeight - 20;
     doc.setFont('times', 'normal');
     doc.setFontSize(9);
@@ -194,7 +185,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Search and Add section */}
         <div className="no-print space-y-4">
             <div className="grid gap-2 max-w-sm">
                 <Label>Report Preparer Name</Label>
@@ -233,7 +223,6 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
             </div>
         </div>
 
-        {/* Present students list */}
         <div className="space-y-4">
             <h3 className="text-lg font-medium">Present Students ({presentStudents.length})</h3>
             <div className="rounded-md border max-h-[600px] overflow-y-auto">

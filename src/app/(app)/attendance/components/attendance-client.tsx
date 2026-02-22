@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { Student, ChoirMember, AttendanceSession, Choir } from '@/lib/types';
-import { saveAttendanceSession } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +12,13 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AttendanceSheet from './attendance-sheet';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import DeleteSessionButton from '../../dashboard/components/delete-session-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type ClientSession = Omit<AttendanceSession, 'date' | 'recorded_at' | 'uploaded_at'> & { date: Date };
 
@@ -95,14 +96,13 @@ export default function AttendanceClient() {
             setStudents(allStudents);
         } catch (error) {
             console.error("Error fetching students in chunks:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load student details for the attendance sheet.' });
         } finally {
             setStudentsLoading(false);
         }
     };
 
     fetchStudentsInChunks();
-  }, [firestore, studentAdmissionNumbers, toast]);
+  }, [firestore, studentAdmissionNumbers]);
 
 
   const sessionsQuery = useMemoFirebase(() =>
@@ -120,7 +120,7 @@ export default function AttendanceClient() {
   const activeStudents = useMemo(() => students || [], [students]);
 
   const handleCreateAndSaveSession = async () => {
-    if (!user) {
+    if (!user || !firestore) {
         toast({ variant: 'destructive', title: 'Not Authenticated', description: 'You must be logged in to create a session.' });
         return;
     }
@@ -144,53 +144,69 @@ export default function AttendanceClient() {
       return acc;
     }, {} as Record<string, boolean>);
 
-    const result = await saveAttendanceSession({
+    const id = `${newSession.date.toISOString().split('T')[0]}_${selectedChoir.id}_${newSession.practice_type.toLowerCase().replace(/\s+/g, '-')}`;
+    const sessionRef = doc(firestore, 'choir_attendance', id);
+    const sessionData = {
       choirId: selectedChoir.id,
       choirName: selectedChoir.name,
-      date: newSession.date,
+      date: Timestamp.fromDate(newSession.date),
       practice_type: newSession.practice_type,
       attendance_map: initialAttendanceMap,
-    }, user.uid);
+      recorded_by: user.uid,
+      recorded_at: serverTimestamp(),
+      locked: false
+    };
 
-    if (result.success) {
-      toast({
-        title: 'Session Created!',
-        description: `The session for ${newSession.practice_type} has been saved. You can now select it to start taking attendance.`,
-      });
-      setNewSession({ date: new Date(), practice_type: '' });
-    } else {
-      toast({ variant: 'destructive', title: 'Creation Failed', description: result.message });
-    }
-    setIsCreating(false);
+    setDoc(sessionRef, sessionData, { merge: true })
+      .then(() => {
+        toast({
+          title: 'Session Created!',
+          description: `The session for ${newSession.practice_type} has been saved.`,
+        });
+        setNewSession({ date: new Date(), practice_type: '' });
+      })
+      .catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: sessionRef.path,
+          operation: 'write',
+          requestResourceData: sessionData
+        }));
+      })
+      .finally(() => setIsCreating(false));
   };
   
   const handleEditSession = (session: AttendanceSession) => {
     setSessionToEdit({
       ...session,
-      date: session.date.toDate(), // Convert Timestamp to JS Date for the form
+      date: session.date.toDate(),
     });
   };
 
   const handleSaveAttendance = async (attendanceMap: Record<string, boolean>) => {
-    if (!sessionToEdit || !selectedChoir || !user) return;
+    if (!sessionToEdit || !selectedChoir || !user || !firestore) return;
     setIsSaving(true);
     
-    const result = await saveAttendanceSession({
-      choirId: selectedChoir.id,
-      choirName: selectedChoir.name,
-      date: sessionToEdit.date,
-      practice_type: sessionToEdit.practice_type,
+    const id = `${sessionToEdit.date.toISOString().split('T')[0]}_${selectedChoir.id}_${sessionToEdit.practice_type.toLowerCase().replace(/\s+/g, '-')}`;
+    const sessionRef = doc(firestore, 'choir_attendance', id);
+    const sessionData = {
       attendance_map: attendanceMap,
-    }, user.uid);
-    
-    if (result.success) {
-      toast({ title: 'Success!', description: result.message });
-      setSessionToEdit(null);
-    } else {
-      toast({ variant: 'destructive', title: 'Save Failed', description: result.message });
-    }
-    
-    setIsSaving(false);
+      recorded_at: serverTimestamp(),
+      recorded_by: user.uid
+    };
+
+    setDoc(sessionRef, sessionData, { merge: true })
+      .then(() => {
+        toast({ title: 'Success!', description: 'Attendance has been saved.' });
+        setSessionToEdit(null);
+      })
+      .catch(async (error) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: sessionRef.path,
+          operation: 'update',
+          requestResourceData: sessionData
+        }));
+      })
+      .finally(() => setIsSaving(false));
   };
   
   const isLoading = authLoading || isCreating || isSaving || membersLoading || studentsLoading || choirsLoading;
