@@ -1,6 +1,7 @@
 /**
  * Core Philosophy: Authenticated school staff model.
  * Any user signed into the application can manage school records.
+ * Triggering deployment comment: v1.2 - Synchronized permissions for all CRUD operations.
  */
 rules_version = '2';
 service cloud.firestore {
