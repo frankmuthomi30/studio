@@ -15,6 +15,12 @@
         width: 100%;
         margin: 0;
         padding: 0;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .no-print {
+        display: none !important;
     }
 
     /* Styles for individual report (portrait) */
@@ -63,7 +69,7 @@
 
     /* Styles for register report (landscape) */
     @page {
-        size: A4 landscape;
+        size: A4 portrait;
         margin: 1cm;
     }
 
