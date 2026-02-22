@@ -61,11 +61,11 @@ export const columns = ({ choirId, choirName }: ColumnsFnProps ): ColumnDef<Stud
   },
   {
     id: 'status',
-    accessorFn: row => row.original.choirMember?.status ?? 'not_member',
+    accessorFn: row => row.choirMember?.status ?? 'not_member',
     header: 'Choir Status',
     cell: ({ row }) => {
       const status = row.original.choirMember?.status ? row.original.choirMember.status : 'not_member';
-      return <StatusBadge status={status} />;
+      return <StatusBadge status={status as any} />;
     },
     filterFn: (row, id, value) => {
         const rowStatus = row.original.choirMember?.status || 'not_member';
