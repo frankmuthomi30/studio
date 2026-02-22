@@ -59,48 +59,44 @@
         "recorded_by": { "type": "string" }
       },
       "required": ["id", "date", "attendance_map"]
+    },
+    "CustomList": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomList",
+      "type": "object",
+      "description": "A custom printable list of students.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "prepared_by": { "type": "string" },
+        "sections": { "type": "array" },
+        "event_date": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
     "providers": ["password"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/students/{admissionNumber}",
-        "definition": {
-          "entityName": "Student",
-          "description": "Stores master student records."
-        }
-      },
-      {
-        "path": "/choirs/{choirId}",
-        "definition": {
-          "entityName": "Choir",
-          "description": "Stores choir groups."
-        }
-      },
-      {
-        "path": "/choirs/{choirId}/members/{admissionNumber}",
-        "definition": {
-          "entityName": "ChoirMember",
-          "description": "Stores members assigned to a specific choir."
-        }
-      },
-      {
-        "path": "/choir_attendance/{attendanceId}",
-        "definition": {
-          "entityName": "ChoirAttendance",
-          "description": "Stores historical attendance records."
-        }
-      },
-      {
-        "path": "/custom_lists/{listId}",
-        "definition": {
-          "entityName": "CustomList",
-          "description": "Stores custom printable student registers."
-        }
-      }
-    ]
+    "/students/{admissionNumber}": {
+      "schema": { "$ref": "#/backend/entities/Student" },
+      "description": "Stores master student records."
+    },
+    "/choirs/{choirId}": {
+      "schema": { "$ref": "#/backend/entities/Choir" },
+      "description": "Stores choir groups."
+    },
+    "/choirs/{choirId}/members/{admissionNumber}": {
+      "schema": { "$ref": "#/backend/entities/ChoirMember" },
+      "description": "Stores members assigned to a specific choir."
+    },
+    "/choir_attendance/{attendanceId}": {
+      "schema": { "$ref": "#/backend/entities/ChoirAttendance" },
+      "description": "Stores historical attendance records."
+    },
+    "/custom_lists/{listId}": {
+      "schema": { "$ref": "#/backend/entities/CustomList" },
+      "description": "Stores custom printable student registers."
+    }
   }
 }

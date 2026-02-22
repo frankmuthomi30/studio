@@ -1,7 +1,7 @@
 /**
- * Core Philosophy: This ruleset enforces a secure "Authenticated Read, Owner Write" model.
- * Any user who is signed into the application can read data from any collection.
- * Write operations (create, update, delete) are strictly controlled based on document ownership.
+ * Core Philosophy: This ruleset enforces a secure "Authenticated staff" model.
+ * Any user who is signed into the application can read and write data.
+ * This ensures that server actions and dashboard queries work seamlessly for Mr. Muthomi and his staff.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -15,36 +15,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isImmutable(fieldName) {
-      return request.resource.data[fieldName] == resource.data[fieldName];
-    }
-
     // --------------------------------
     // Collection Rules
     // --------------------------------
 
     match /students/{admissionNumber} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(request.resource.data.uploaded_by);
-      allow update: if isSignedIn() && resource != null && isOwner(resource.data.uploaded_by) && isImmutable('uploaded_by');
-      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.uploaded_by);
+      allow read, write: if isSignedIn();
     }
 
     match /choirs/{choirId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(request.resource.data.created_by);
-      allow update: if isSignedIn() && resource != null && isOwner(resource.data.created_by) && isImmutable('created_by');
-      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.created_by);
+      allow read, write: if isSignedIn();
 
       match /members/{admissionNumber} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && isOwner(request.resource.data.added_by);
-        allow update: if isSignedIn() && resource != null && isOwner(resource.data.added_by) && isImmutable('added_by');
-        allow delete: if isSignedIn() && resource != null && isOwner(resource.data.added_by);
+        allow read, write: if isSignedIn();
       }
     }
 
@@ -54,15 +37,11 @@ service cloud.firestore {
     }
 
     match /choir_attendance/{attendanceId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(request.resource.data.recorded_by);
-      allow update: if isSignedIn() && resource != null && isOwner(resource.data.recorded_by) && isImmutable('recorded_by');
-      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.recorded_by);
+      allow read, write: if isSignedIn();
     }
 
     match /custom_lists/{listId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn(); // Shared workspace for custom event planning
+      allow read, write: if isSignedIn();
     }
   }
 }
