@@ -169,19 +169,22 @@ function SectionCard({
     return (
         <Card 
             id={section.id}
-            className={cn("transition-all", isActive ? "ring-2 ring-primary ring-offset-2 shadow-xl" : "opacity-95")}
+            className={cn("transition-all print:shadow-none print:border-none", isActive ? "ring-2 ring-primary ring-offset-2 shadow-xl print:ring-0 print:ring-offset-0" : "opacity-95")}
             onClick={onActivate}
         >
-            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b bg-muted/30">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b bg-muted/30 print:bg-transparent print:pb-1">
                 <div className="flex items-center gap-3 flex-grow mr-4">
-                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">
+                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0 no-print">
                         {index + 1}
                     </div>
-                    <Input 
-                        value={section.title}
-                        onChange={(e) => onUpdateTitle(section.id, e.target.value)}
-                        className="font-bold border-none bg-transparent h-8 p-0 text-lg"
-                    />
+                    <div className="font-bold border-none bg-transparent h-8 p-0 text-lg print:text-base">
+                        <Input 
+                            value={section.title}
+                            onChange={(e) => onUpdateTitle(section.id, e.target.value)}
+                            className="font-bold border-none bg-transparent h-8 p-0 text-lg no-print"
+                        />
+                        <span className="hidden print:inline">{section.title}</span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-1 no-print">
                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onActivate(); }}>
@@ -192,7 +195,7 @@ function SectionCard({
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-4 space-y-4 print:p-0 print:pt-2">
                 <div className="flex gap-2 no-print">
                     <div className="relative flex-grow">
                         <Input 
@@ -242,17 +245,17 @@ function SectionCard({
                     </div>
                 )}
 
-                <div className="divide-y rounded-md border overflow-hidden">
+                <div className="divide-y rounded-md border overflow-hidden print:border-none print:divide-y-0">
                     {section.student_admission_numbers.length > 0 ? (
                         section.student_admission_numbers.map((adm, sIdx) => {
                             const student = studentsMap.get(adm);
                             return (
-                                <div key={`${section.id}-${adm}`} className="flex items-center justify-between p-3 text-sm hover:bg-muted/5">
+                                <div key={`${section.id}-${adm}`} className="flex items-center justify-between p-3 text-sm hover:bg-muted/5 print:p-1 print:border-b">
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] text-muted-foreground w-4">{sIdx + 1}.</span>
                                         <div>
-                                            <p className="font-semibold">{student ? `${student.first_name} ${student.last_name}` : adm}</p>
-                                            <p className="text-[11px] text-muted-foreground">{adm} — {student?.class || ''}</p>
+                                            <p className="font-semibold print:text-xs">{student ? `${student.first_name} ${student.last_name}` : adm}</p>
+                                            <p className="text-[11px] text-muted-foreground print:text-[9px]">{adm} — {student?.class || ''}</p>
                                         </div>
                                     </div>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/50 hover:text-destructive no-print" onClick={() => onRemoveStudent(adm, section.id)}>
@@ -262,7 +265,7 @@ function SectionCard({
                             );
                         })
                     ) : (
-                        <div className="p-8 text-center text-muted-foreground text-xs">No students in section.</div>
+                        <div className="p-8 text-center text-muted-foreground text-xs print:hidden">No students in section.</div>
                     )}
                 </div>
             </CardContent>
@@ -473,80 +476,85 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                 </div>
             </div>
 
-            {/* Print-only Header */}
-            <div className="hidden print-container space-y-6">
-                <div className="flex items-start justify-between border-b-2 border-gray-800 pb-2">
-                    <div className="flex items-start gap-3">
-                        {schoolLogo && (
-                            <Image
-                                src={schoolLogo.imageUrl}
-                                alt={schoolLogo.description}
-                                width={60}
-                                height={60}
+            {/* Main Editor & Printable Area */}
+            <div className="print-container">
+                {/* Print-only Header (Visible in Editor for Preview) */}
+                <div className="mb-8 border-b-2 border-gray-800 pb-4">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                            {schoolLogo && (
+                                <Image
+                                    src={schoolLogo.imageUrl}
+                                    alt={schoolLogo.description}
+                                    width={60}
+                                    height={60}
+                                />
+                            )}
+                            <div className="space-y-0.5 font-serif">
+                                <h2 className="text-2xl font-bold text-gray-800 tracking-wider">GATURA GIRLS</h2>
+                                <div className="text-[10px] text-gray-600 leading-tight">
+                                    <p>30-01013, Muranga.</p>
+                                    <p>gaturagirls@gmail.com | 0793328863</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <h3 className="font-headline text-lg text-gray-700">{listTitle}</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* Editor Controls - Hidden in Print */}
+                    <div className="lg:col-span-1 space-y-4 no-print">
+                        <Card>
+                            <CardHeader><CardTitle className="text-lg">Editor Info</CardTitle></CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Main Title</Label>
+                                    <Input value={listTitle} onChange={(e) => setListTitle(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Prepared By</Label>
+                                    <Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} />
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Button variant="outline" className="w-full border-dashed" onClick={handleAddSection}><Plus className="mr-2"/> Add Section</Button>
+                    </div>
+
+                    {/* Content Section - Expanded in Print */}
+                    <div className="lg:col-span-3 print:col-span-4 space-y-8">
+                        {sections.map((section, idx) => (
+                            <SectionCard 
+                                key={section.id}
+                                index={idx}
+                                section={section}
+                                studentsMap={studentsMap}
+                                isActive={activeSectionId === section.id}
+                                onActivate={() => setActiveSectionId(section.id)}
+                                onRemoveSection={(id) => setSections(prev => prev.length > 1 ? prev.filter(s => s.id !== id) : prev)}
+                                onUpdateTitle={(id, title) => setSections(prev => prev.map(s => s.id === id ? { ...s, title } : s))}
+                                onAddStudent={handleAddStudent}
+                                onRemoveStudent={handleRemoveStudent}
                             />
-                        )}
-                        <div className="space-y-0.5 font-serif">
-                            <h2 className="text-2xl font-bold text-gray-800 tracking-wider">GATURA GIRLS</h2>
-                            <div className="text-[10px] text-gray-600 leading-tight">
-                                <p>30-01013, Muranga.</p>
-                                <p>gaturagirls@gmail.com | 0793328863</p>
+                        ))}
+                        
+                        {/* Signature and Footer Area */}
+                        <div className="mt-12 pt-8 border-t space-y-8">
+                            <div className="grid grid-cols-2 gap-12">
+                                <div className="space-y-1">
+                                    <div className="w-full border-b border-gray-400"></div>
+                                    <p className="font-semibold text-xs">{preparedBy}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="w-full border-b border-gray-400"></div>
+                                    <p className="font-semibold text-xs">Date</p>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <h3 className="font-headline text-lg text-gray-700">{listTitle}</h3>
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-1 space-y-4 no-print">
-                    <Card>
-                        <CardHeader><CardTitle className="text-lg">Editor Info</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Main Title</Label>
-                                <Input value={listTitle} onChange={(e) => setListTitle(e.target.value)} />
+                            <div className="text-center text-[9px] text-gray-500">
+                                <p>Generated by Gatura Hub on {format(new Date(), 'PPPP')}, at {format(new Date(), 'p')} — Page 1 of 1</p>
                             </div>
-                            <div className="space-y-2">
-                                <Label>Prepared By</Label>
-                                <Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Button variant="outline" className="w-full border-dashed" onClick={handleAddSection}><Plus className="mr-2"/> Add Section</Button>
-                </div>
-
-                <div className="lg:col-span-3 space-y-8 print-container">
-                    {sections.map((section, idx) => (
-                        <SectionCard 
-                            key={section.id}
-                            index={idx}
-                            section={section}
-                            studentsMap={studentsMap}
-                            isActive={activeSectionId === section.id}
-                            onActivate={() => setActiveSectionId(section.id)}
-                            onRemoveSection={(id) => setSections(prev => prev.length > 1 ? prev.filter(s => s.id !== id) : prev)}
-                            onUpdateTitle={(id, title) => setSections(prev => prev.map(s => s.id === id ? { ...s, title } : s))}
-                            onAddStudent={handleAddStudent}
-                            onRemoveStudent={handleRemoveStudent}
-                        />
-                    ))}
-                    
-                    {/* Print-only footer for window.print() */}
-                    <div className="hidden print-container mt-12 pt-8 border-t space-y-8">
-                        <div className="grid grid-cols-2 gap-12">
-                            <div className="space-y-1">
-                                <div className="w-full border-b border-gray-400"></div>
-                                <p className="font-semibold text-xs">{preparedBy}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <div className="w-full border-b border-gray-400"></div>
-                                <p className="font-semibold text-xs">Date</p>
-                            </div>
-                        </div>
-                        <div className="text-center text-[9px] text-gray-500">
-                            <p>Generated by Gatura Hub on {format(new Date(), 'PPPP')}, at {format(new Date(), 'p')} — Page 1 of 1</p>
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 /**
  * Core Philosophy: Authenticated school staff model.
  * Any user signed into the application can manage school records.
- * Triggering deployment comment: v1.2 - Synchronized permissions for all CRUD operations.
+ * Triggering deployment comment: v1.3 - Explicit CRUD permissions for all modules.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -13,29 +13,29 @@ service cloud.firestore {
 
     // Allow authenticated staff to manage all primary collections
     match /students/{studentId} {
-      allow read, write: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     match /choirs/{choirId} {
-      allow read, write: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
       
       // Nested members collection
       match /members/{memberId} {
-        allow read, write: if isSignedIn();
+        allow get, list, create, update, delete: if isSignedIn();
       }
     }
 
     match /choir_attendance/{sessionId} {
-      allow read, write: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     match /custom_lists/{listId} {
-      allow read, write: if isSignedIn();
+      allow get, list, create, update, delete: if isSignedIn();
     }
 
     // Support collectionGroup queries for the Dashboard (e.g. counting all members)
     match /{path=**}/members/{memberId} {
-      allow read: if isSignedIn();
+      allow get, list: if isSignedIn();
     }
   }
 }
