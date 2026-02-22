@@ -4,138 +4,65 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
       "type": "object",
-      "description": "Represents a student in the school, containing their personal and academic details.",
+      "description": "Represents a student in the school.",
       "properties": {
-        "admissionNumber": {
-          "type": "string",
-          "description": "Unique identifier for the student entity."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the student."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the student."
-        },
-        "gender": {
-          "type": "string",
-          "description": "The gender of the student."
-        },
-        "class": {
-          "type": "string",
-          "description": "The class or grade the student is in."
-        },
-        "stream": {
-          "type": "string",
-          "description": "The stream or section the student belongs to within the class (e.g., A, B, C)."
-        },
-        "year": {
-          "type": "number",
-          "description": "The year the student is in."
-        },
-        "uploadedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the student data was uploaded.",
-          "format": "date-time"
-        },
-        "uploadedBy": {
-          "type": "string",
-          "description": "User ID of the person who uploaded the student data."
-        }
+        "admission_number": { "type": "string" },
+        "first_name": { "type": "string" },
+        "last_name": { "type": "string" },
+        "gender": { "type": "string" },
+        "class": { "type": "string" },
+        "stream": { "type": "string" },
+        "uploaded_at": { "type": "string", "format": "date-time" },
+        "uploaded_by": { "type": "string" }
       },
-      "required": [
-        "admissionNumber",
-        "firstName",
-        "lastName",
-        "gender",
-        "class"
-      ]
+      "required": ["admission_number", "first_name", "last_name", "class"]
+    },
+    "Choir": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Choir",
+      "type": "object",
+      "description": "Represents a choir group.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" }
+      },
+      "required": ["name"]
     },
     "ChoirMember": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChoirMember",
       "type": "object",
-      "description": "Represents a student's membership in the choir.",
+      "description": "A student's membership in a specific choir.",
       "properties": {
-        "admissionNumber": {
-          "type": "string",
-          "description": "Unique identifier for the ChoirMember entity."
-        },
-        "class": {
-          "type": "string",
-          "description": "The class or grade of the choir member."
-        },
-        "status": {
-          "type": "string",
-          "description": "The membership status of the student in the choir (active/inactive)."
-        },
-        "dateJoined": {
-          "type": "string",
-          "description": "The date when the student joined the choir.",
-          "format": "date-time"
-        },
-        "addedBy": {
-          "type": "string",
-          "description": "User ID of the person who added the student to the choir."
-        }
+        "admission_number": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "date_joined": { "type": "string", "format": "date-time" },
+        "added_by": { "type": "string" }
       },
-      "required": [
-        "admissionNumber",
-        "class",
-        "status",
-        "dateJoined"
-      ]
+      "required": ["admission_number", "status"]
     },
     "ChoirAttendance": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChoirAttendance",
       "type": "object",
-      "description": "Represents the attendance record for a specific choir practice session.",
+      "description": "Attendance record for a session.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ChoirAttendance entity (e.g., 2026-02-01_evening)."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the choir practice session.",
-          "format": "date-time"
-        },
-        "practiceType": {
-          "type": "string",
-          "description": "The type of practice session (e.g., evening, morning)."
-        },
-        "classFilter": {
-          "type": "string",
-          "description": "Optional filter to only include specific classes in the attendance (e.g., Form 3)."
-        },
-        "attendanceMap": {
-          "type": "string",
-          "description": "Map of student admission numbers to their attendance status (true for present, false for absent)."
-        },
-        "recordedBy": {
-          "type": "string",
-          "description": "User ID of the person who recorded the attendance."
-        },
-        "recordedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the attendance was recorded.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "choirId": { "type": "string" },
+        "choirName": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "practice_type": { "type": "string" },
+        "attendance_map": { "type": "object" },
+        "recorded_by": { "type": "string" }
       },
-      "required": [
-        "id",
-        "date",
-        "practiceType",
-        "attendanceMap"
-      ]
+      "required": ["id", "date", "attendance_map"]
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
     "structure": [
@@ -143,51 +70,37 @@
         "path": "/students/{admissionNumber}",
         "definition": {
           "entityName": "Student",
-          "schema": {
-            "$ref": "#/backend/entities/Student"
-          },
-          "description": "Stores student master data. Document ID is the admission number.",
-          "params": [
-            {
-              "name": "admissionNumber",
-              "description": "The unique admission number of the student."
-            }
-          ]
+          "description": "Stores master student records."
         }
       },
       {
-        "path": "/choir_members/{admissionNumber}",
+        "path": "/choirs/{choirId}",
+        "definition": {
+          "entityName": "Choir",
+          "description": "Stores choir groups."
+        }
+      },
+      {
+        "path": "/choirs/{choirId}/members/{admissionNumber}",
         "definition": {
           "entityName": "ChoirMember",
-          "schema": {
-            "$ref": "#/backend/entities/ChoirMember"
-          },
-          "description": "Stores choir membership information. Document ID is the admission number.",
-          "params": [
-            {
-              "name": "admissionNumber",
-              "description": "The unique admission number of the choir member."
-            }
-          ]
+          "description": "Stores members assigned to a specific choir."
         }
       },
       {
         "path": "/choir_attendance/{attendanceId}",
         "definition": {
           "entityName": "ChoirAttendance",
-          "schema": {
-            "$ref": "#/backend/entities/ChoirAttendance"
-          },
-          "description": "Stores choir attendance records. Document ID is a composite of date and practice type (e.g., 2026-02-01_evening).",
-          "params": [
-            {
-              "name": "attendanceId",
-              "description": "The unique ID of the attendance record, composed of date and practice type."
-            }
-          ]
+          "description": "Stores historical attendance records."
+        }
+      },
+      {
+        "path": "/custom_lists/{listId}",
+        "definition": {
+          "entityName": "CustomList",
+          "description": "Stores custom printable student registers."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to support the ChoirMaster application, prioritizing authorization independence, scalability, and debuggability. It leverages structural segregation and denormalization to simplify security rules and optimize query performance. \n\n**Authorization Independence:** The design avoids hierarchical authorization dependencies by storing all necessary authorization information directly within each document. For example, membership status for `ChoirMembers` is stored directly in the `choir_members` collection, eliminating the need for `get()` calls to parent documents.  Similarly, while ownership isn't explicitly defined in the data model, `uploadedBy` and `addedBy` fields in the `students` and `choir_members` collections respectively provide an audit trail, and can be used to implement simple ownership based rules, if needed.\n\n**Structural Segregation:**  The separation of student data, choir membership, and attendance records into distinct collections (`students`, `choir_members`, `choir_attendance`) ensures that each collection has a homogeneous security posture. This simplifies security rules and prevents the mixing of data with different access requirements.\n\n**QAPs (Rules are not Filters):** The structure enables secure `list` operations. The `choir_members` collection, with its `status` field, allows for efficient querying of active choir members. The segregation of data into separate collections ensures that rules can be applied to each collection without the need for filtering based on document content. Each collection serves distinct query needs, ensuring rules can be efficiently written to address the particular needs of each collection.\n\nThe design leverages the `admissionNumber` as the document ID in both `students` and `choir_members` collections to ensure a consistent global unique identifier across the system. Attendance records use a composite ID (`date_practiceType`) to ensure uniqueness for each session.\n\n**Report Generation:** The structure is optimized for generating the required reports. The `students` collection provides student details, the `choir_members` collection provides membership information, and the `choir_attendance` collection provides attendance records. These collections can be efficiently queried and joined (in application code) to generate the individual and full choir attendance reports."
+    ]
   }
 }

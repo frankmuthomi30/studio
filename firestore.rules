@@ -1,32 +1,7 @@
 /**
  * Core Philosophy: This ruleset enforces a secure "Authenticated Read, Owner Write" model.
  * Any user who is signed into the application can read data from any collection.
- * However, write operations (create, update, delete) are strictly controlled. A user can
- * only create documents they own (by setting an owner field like 'uploadedBy') and can
- * only modify or delete documents they already own.
- *
- * Data Structure: The data is organized into three distinct, top-level collections:
- * - /students: Master list of all students.
- * - /choir_members: List of students who are part of the choir.
- * - /choir_attendance: Attendance records for choir practice sessions.
- * This flat structure avoids complex hierarchical rules and improves query performance.
- *
- * Key Security Decisions:
- * - Default Deny: All access is denied by default. Rules explicitly grant permissions.
- * - Authentication Required: No unauthenticated user can read or write any data.
- * - Owner-Controlled Writes: The user who creates a record (student, choir member, or attendance)
- *   is the only one who can update or delete it. This is enforced by checking fields like
- *   `uploadedBy`, `addedBy`, and `recordedBy`.
- * - Immutable Ownership: Once an ownership field is set during document creation, it cannot
- *   be changed. This prevents users from re-assigning documents to others.
- * - Flexible Data Shape: In this prototyping phase, the rules do not validate the specific
- *   schema of the data (e.g., student's first name, attendance status). The focus is solely
- *   on enforcing authorization.
- *
- * Denormalization for Authorization: This ruleset relies on denormalized ownership fields
- * (`uploadedBy`, `addedBy`, `recordedBy`) present on every document. This is a critical
- * design choice that makes security rules fast and efficient, as it avoids slow and costly
- * cross-document `get()` calls to determine permissions.
+ * Write operations (create, update, delete) are strictly controlled based on document ownership.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -36,24 +11,14 @@ service cloud.firestore {
     // Helper Functions
     // --------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the requesting user's UID matches the provided userId.
-     */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
-    /**
-     * Enforces that a specific field cannot be changed during an update.
-     * This is critical for preventing ownership fields from being reassigned.
-     */
     function isImmutable(fieldName) {
       return request.resource.data[fieldName] == resource.data[fieldName];
     }
@@ -62,52 +27,42 @@ service cloud.firestore {
     // Collection Rules
     // --------------------------------
 
-    /**
-     * @description Controls access to the master list of students. Any authenticated user
-     *   can view the student list, but only the user who uploaded a student's record can
-     *   modify or delete it.
-     * @path /students/{admissionNumber}
-     * @allow (get) An authenticated user 'user_abc' retrieves student '1234'.
-     * @deny (update) User 'user_xyz' tries to update a student record uploaded by 'user_abc'.
-     * @principle Enforces document ownership for writes while allowing authenticated reads.
-     */
     match /students/{admissionNumber} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(request.resource.data.uploadedBy);
-      allow update: if isSignedIn() && resource != null && isOwner(resource.data.uploadedBy) && isImmutable('uploadedBy');
-      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.uploadedBy);
+      allow create: if isSignedIn() && isOwner(request.resource.data.uploaded_by);
+      allow update: if isSignedIn() && resource != null && isOwner(resource.data.uploaded_by) && isImmutable('uploaded_by');
+      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.uploaded_by);
     }
 
-    /**
-     * @description Manages access to choir membership records. All authenticated users can
-     *   see who is in the choir, but only the user who added a member can update their
-     *   status or remove them.
-     * @path /choir_members/{admissionNumber}
-     * @allow (create) An authenticated user 'user_abc' adds a new student to the choir, setting 'addedBy' to their own UID.
-     * @deny (delete) User 'user_xyz' attempts to delete a choir member added by 'user_abc'.
-     * @principle Secures write operations based on a denormalized 'addedBy' ownership field.
-     */
-    match /choir_members/{admissionNumber} {
+    match /choirs/{choirId} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(request.resource.data.addedBy);
-      allow update: if isSignedIn() && resource != null && isOwner(resource.data.addedBy) && isImmutable('addedBy');
-      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.addedBy);
+      allow create: if isSignedIn() && isOwner(request.resource.data.created_by);
+      allow update: if isSignedIn() && resource != null && isOwner(resource.data.created_by) && isImmutable('created_by');
+      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.created_by);
+
+      match /members/{admissionNumber} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && isOwner(request.resource.data.added_by);
+        allow update: if isSignedIn() && resource != null && isOwner(resource.data.added_by) && isImmutable('added_by');
+        allow delete: if isSignedIn() && resource != null && isOwner(resource.data.added_by);
+      }
     }
 
-    /**
-     * @description Secures choir attendance records. Authenticated users can view all
-     *   attendance history. Creating, updating, or deleting an attendance record is
-     *   restricted to the user who originally recorded it.
-     * @path /choir_attendance/{attendanceId}
-     * @allow (list) An authenticated user 'user_abc' queries for all past attendance records.
-     * @deny (update) User 'user_xyz' tries to modify an attendance record created by 'user_abc'.
-     * @principle Restricts modification of historical records to the original author.
-     */
+    // Support collectionGroup queries for members across all choirs (Dashboard)
+    match /{path=**}/members/{admissionNumber} {
+      allow get, list: if isSignedIn();
+    }
+
     match /choir_attendance/{attendanceId} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(request.resource.data.recordedBy);
-      allow update: if isSignedIn() && resource != null && isOwner(resource.data.recordedBy) && isImmutable('recordedBy');
-      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.recordedBy);
+      allow create: if isSignedIn() && isOwner(request.resource.data.recorded_by);
+      allow update: if isSignedIn() && resource != null && isOwner(resource.data.recorded_by) && isImmutable('recorded_by');
+      allow delete: if isSignedIn() && resource != null && isOwner(resource.data.recorded_by);
+    }
+
+    match /custom_lists/{listId} {
+      allow get, list: if isSignedIn();
+      allow write: if isSignedIn(); // Shared workspace for custom event planning
     }
   }
 }
