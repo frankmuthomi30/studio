@@ -3,7 +3,7 @@ import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { CustomList, Student, ListSection } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, getDocs, orderBy, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
-import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon, Trash2, UserPlus, ArrowDown } from 'lucide-react';
+import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon, Trash2, UserPlus, ArrowDown, FileDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
 
 function SectionCard({ 
     section, 
@@ -182,7 +183,7 @@ function SectionCard({
                         className="font-bold border-none bg-transparent h-8 p-0 text-lg"
                     />
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 no-print">
                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onActivate(); }}>
                         <Edit className="h-4 w-4" />
                     </Button>
@@ -192,7 +193,7 @@ function SectionCard({
                 </div>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 no-print">
                     <div className="relative flex-grow">
                         <Input 
                             placeholder="Add student (Adm No. or Name)..."
@@ -206,10 +207,10 @@ function SectionCard({
                     <Button size="sm" onClick={handleFind} disabled={isFinding}><Plus className="h-4 w-4 mr-1" /> Find</Button>
                 </div>
 
-                {findError && <p className="text-xs text-destructive">{findError}</p>}
+                {findError && <p className="text-xs text-destructive no-print">{findError}</p>}
                 
                 {showQuickAdd && (
-                    <Card className="border-primary/20 bg-primary/5 p-3 space-y-3">
+                    <Card className="border-primary/20 bg-primary/5 p-3 space-y-3 no-print">
                         <div className="flex justify-between items-center">
                             <Label className="text-xs font-bold">Quick Add Student</Label>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowQuickAdd(false)}><X className="h-3 w-3"/></Button>
@@ -228,7 +229,7 @@ function SectionCard({
                 )}
 
                 {foundStudents && foundStudents.length > 0 && (
-                    <div className="p-2 bg-muted/50 rounded-md border border-dashed space-y-2">
+                    <div className="p-2 bg-muted/50 rounded-md border border-dashed space-y-2 no-print">
                         {foundStudents.map(s => (
                             <div key={s.id} className="flex justify-between items-center bg-white p-2 rounded border text-sm">
                                 <div>
@@ -254,7 +255,7 @@ function SectionCard({
                                             <p className="text-[11px] text-muted-foreground">{adm} — {student?.class || ''}</p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/50 hover:text-destructive" onClick={() => onRemoveStudent(adm, section.id)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/50 hover:text-destructive no-print" onClick={() => onRemoveStudent(adm, section.id)}>
                                         <X className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -274,9 +275,10 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
     const { user } = useUser();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
 
     const [listTitle, setListTitle] = useState(list.title);
-    const [preparedBy, setPreparedBy] = useState(list.prepared_by || '');
+    const [preparedBy, setPreparedBy] = useState(list.prepared_by || 'Mr. Muthomi (Choir Director)');
     const [eventDate, setEventDate] = useState<Date | undefined>(list.event_date ? list.event_date.toDate() : undefined);
     
     const [sections, setSections] = useState<ListSection[]>(() => {
@@ -350,19 +352,156 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
         setActiveSectionId(id);
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const handleExportPdf = () => {
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const now = new Date();
+        const serialNumber = `GGHS/LIST/${format(now, 'yyyyMMdd')}/${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+
+        // Header and serial logic similar to other reports
+        doc.setFontSize(7);
+        doc.setTextColor(150);
+        doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 8, { align: 'right' });
+        doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 11, { align: 'right' });
+        doc.setTextColor(0);
+
+        let cursorY = 12;
+
+        if (schoolLogo?.imageUrl) {
+            try {
+                doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 18, 18);
+            } catch (e) {
+                console.error("Error adding logo to PDF:", e);
+            }
+        }
+        doc.setFont('times', 'bold');
+        doc.setFontSize(18);
+        doc.text("GATURA GIRLS", margin + 22, cursorY + 6);
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(8.5);
+        doc.text("30-01013, Muranga.", margin + 22, cursorY + 10);
+        doc.text("gaturagirls@gmail.com | 0793328863", margin + 22, cursorY + 14);
+        
+        doc.setFont('times', 'bold');
+        doc.setFontSize(13);
+        doc.text(listTitle, pageWidth - margin, cursorY + 8, { align: 'right' });
+
+        cursorY += 25;
+
+        sections.forEach((section, index) => {
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.text(section.title, margin, cursorY);
+            cursorY += 5;
+
+            const tableRows = section.student_admission_numbers.map((adm, sIdx) => {
+                const s = studentsMap.get(adm);
+                return [
+                    (sIdx + 1).toString(),
+                    adm,
+                    s ? `${s.first_name} ${s.last_name}` : 'Unknown Student',
+                    s ? `${s.class} ${s.stream || ''}` : ''
+                ];
+            });
+
+            (doc as any).autoTable({
+                head: [['#', 'Adm No.', 'Full Name', 'Class']],
+                body: tableRows,
+                startY: cursorY,
+                theme: 'grid',
+                headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
+                styles: { font: 'times', fontStyle: 'normal', cellPadding: 1.5, fontSize: 9 },
+                margin: { left: margin, right: margin },
+                didDrawPage: (data: any) => {
+                    const pageCount = doc.internal.getNumberOfPages();
+                    doc.setFontSize(8);
+                    doc.setFont('times', 'normal');
+                    doc.setTextColor(150);
+                    const generatedOnText = `Generated by Gatura Hub on ${format(now, 'PPPP')}, at ${format(now, 'p')} — Page ${data.pageNumber} of ${pageCount}`;
+                    doc.text(generatedOnText, pageWidth / 2, pageHeight - 8, { align: 'center' });
+                }
+            });
+
+            cursorY = (doc as any).lastAutoTable.finalY + 10;
+            
+            if (cursorY > pageHeight - 40 && index < sections.length - 1) {
+                doc.addPage();
+                cursorY = 20;
+            }
+        });
+
+        const totalStudents = new Set(sections.flatMap(s => s.student_admission_numbers)).size;
+        doc.setFont('times', 'bold');
+        doc.setFontSize(10);
+        doc.text(`Total Unique Students: ${totalStudents}`, margin, cursorY);
+        
+        cursorY += 15;
+        if (cursorY > pageHeight - 25) {
+            doc.addPage();
+            cursorY = 20;
+        }
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(9);
+        const signatureWidth = 50;
+        doc.line(margin, cursorY, margin + signatureWidth, cursorY);
+        doc.text(preparedBy, margin, cursorY + 4);
+
+        doc.line(pageWidth - margin - signatureWidth, cursorY, pageWidth - margin, cursorY);
+        doc.text("Date", pageWidth - margin - signatureWidth, cursorY + 4);
+
+        doc.save(`${listTitle.replace(/\s+/g, '-')}-${format(now, 'yyyy-MM-dd')}.pdf`);
+    };
+
     return (
         <div className="space-y-6">
-             <div className="flex justify-between items-center bg-card p-4 rounded-lg border sticky top-0 z-20">
+             <div className="flex justify-between items-center bg-card p-4 rounded-lg border sticky top-0 z-20 no-print">
                 <Button variant="outline" onClick={onBack} size="sm"><X className="mr-2 h-4 w-4" /> Exit</Button>
                 <div className="flex gap-2">
+                    <Button variant="outline" onClick={handlePrint} size="sm"><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                    <Button variant="outline" onClick={handleExportPdf} size="sm"><FileDown className="mr-2 h-4 w-4" /> Export PDF</Button>
                     <Button onClick={handleSaveList} disabled={isPending} size="sm">
                         {isPending ? <Loader2 className="animate-spin h-4 w-4" /> : <Check className="mr-2 h-4 w-4"/>} Save
                     </Button>
                 </div>
             </div>
 
+            {/* Print-only Header */}
+            <div className="hidden print-container space-y-6">
+                <div className="flex items-start justify-between border-b-2 border-gray-800 pb-2">
+                    <div className="flex items-start gap-3">
+                        {schoolLogo && (
+                            <Image
+                                src={schoolLogo.imageUrl}
+                                alt={schoolLogo.description}
+                                width={60}
+                                height={60}
+                            />
+                        )}
+                        <div className="space-y-0.5 font-serif">
+                            <h2 className="text-2xl font-bold text-gray-800 tracking-wider">GATURA GIRLS</h2>
+                            <div className="text-[10px] text-gray-600 leading-tight">
+                                <p>30-01013, Muranga.</p>
+                                <p>gaturagirls@gmail.com | 0793328863</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <h3 className="font-headline text-lg text-gray-700">{listTitle}</h3>
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-1 space-y-4">
+                <div className="lg:col-span-1 space-y-4 no-print">
                     <Card>
                         <CardHeader><CardTitle className="text-lg">Editor Info</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
@@ -379,7 +518,7 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                     <Button variant="outline" className="w-full border-dashed" onClick={handleAddSection}><Plus className="mr-2"/> Add Section</Button>
                 </div>
 
-                <div className="lg:col-span-3 space-y-8">
+                <div className="lg:col-span-3 space-y-8 print-container">
                     {sections.map((section, idx) => (
                         <SectionCard 
                             key={section.id}
@@ -394,6 +533,23 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                             onRemoveStudent={handleRemoveStudent}
                         />
                     ))}
+                    
+                    {/* Print-only footer for window.print() */}
+                    <div className="hidden print-container mt-12 pt-8 border-t space-y-8">
+                        <div className="grid grid-cols-2 gap-12">
+                            <div className="space-y-1">
+                                <div className="w-full border-b border-gray-400"></div>
+                                <p className="font-semibold text-xs">{preparedBy}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <div className="w-full border-b border-gray-400"></div>
+                                <p className="font-semibold text-xs">Date</p>
+                            </div>
+                        </div>
+                        <div className="text-center text-[9px] text-gray-500">
+                            <p>Generated by Gatura Hub on {format(new Date(), 'PPPP')}, at {format(new Date(), 'p')} — Page 1 of 1</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -419,7 +575,7 @@ export default function ListBuilderClient() {
         setIsCreating(true);
         const data = {
             title: newListTitle,
-            prepared_by: 'Mr. Muthomi',
+            prepared_by: 'Mr. Muthomi (Choir Director)',
             sections: [{ id: 'default', title: 'Main List', student_admission_numbers: [] }],
             created_at: serverTimestamp(),
             updated_at: serverTimestamp(),
@@ -473,7 +629,7 @@ export default function ListBuilderClient() {
                             <Button variant="ghost" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
                             <Button onClick={handleCreate} disabled={isCreating}>{isCreating && <Loader2 className="animate-spin mr-2"/>} Create</Button>
                         </CardFooter>
-                    </Card>
+                    </div>
                  </div>
             )}
         </div>
