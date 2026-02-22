@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { StudentWithChoirStatus } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -24,13 +24,12 @@ export default function AllMembersReport({ students, choirName, preparedBy }: Al
         setSerialNumber(`GGHS/${format(now, 'yyyyMMdd')}/${Math.random().toString(36).substring(2, 6).toUpperCase()}`);
     }, []);
     
-    const sortedStudents = students.sort((a, b) => {
-        const classComparison = (a.class || '').localeCompare(b.class || '');
-        if (classComparison !== 0) return classComparison;
-        const a_name = `${a.first_name} ${a.last_name}`;
-        const b_name = `${b.first_name} ${b.last_name}`;
-        return a_name.localeCompare(b_name);
-    });
+    // Updated sorting: numerically by admission number
+    const sortedStudents = useMemo(() => {
+        return [...students].sort((a, b) => {
+            return (a.admission_number || '').localeCompare(b.admission_number || '', undefined, { numeric: true });
+        });
+    }, [students]);
 
   return (
     <div className="report-preview mx-auto bg-white p-6 rounded-lg shadow-lg relative" id="all-members-report">

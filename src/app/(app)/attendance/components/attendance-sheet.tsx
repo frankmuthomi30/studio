@@ -41,7 +41,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
   const presentStudents = useMemo(() => {
     return activeChoirStudents
       .filter(m => presentAdmissionNumbers.has(m.admission_number))
-      .sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
+      .sort((a, b) => (a.admission_number || '').localeCompare(b.admission_number || '', undefined, { numeric: true }));
   }, [presentAdmissionNumbers, activeChoirStudents]);
 
   const handleMarkPresent = () => {
@@ -119,6 +119,7 @@ export default function AttendanceSheet({ session, activeChoirStudents, onSave, 
     doc.text(format(session.date, 'EEEE, MMMM d, yyyy'), pageWidth / 2, cursorY, { align: 'center' });
     cursorY += 8;
 
+    // Row mapping - students already sorted by admission number in useMemo
     const tableRows = presentStudents.map(s => [
         s.admission_number,
         `${s.first_name} ${s.last_name}`,

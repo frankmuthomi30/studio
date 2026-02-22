@@ -120,7 +120,8 @@ export default function RegisterReport({ filters }: RegisterReportProps) {
             return null;
         }
         
-        const reportRows = students.sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
+        // Sorting by admission number numerically for PDF/Report clarity
+        const reportRows = [...students].sort((a, b) => (a.admission_number || '').localeCompare(b.admission_number || '', undefined, { numeric: true }));
 
         const presentCount = Object.values(firstSession.attendance_map).filter(Boolean).length;
         const totalCount = Object.keys(firstSession.attendance_map).length;

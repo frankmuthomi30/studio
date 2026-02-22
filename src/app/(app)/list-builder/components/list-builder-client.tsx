@@ -247,7 +247,9 @@ function SectionCard({
 
                 <div className="divide-y rounded-md border overflow-hidden print:border-none print:divide-y-0">
                     {section.student_admission_numbers.length > 0 ? (
-                        section.student_admission_numbers.map((adm, sIdx) => {
+                        [...section.student_admission_numbers]
+                        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+                        .map((adm, sIdx) => {
                             const student = studentsMap.get(adm);
                             return (
                                 <div key={`${section.id}-${adm}`} className="flex items-center justify-between p-3 text-sm hover:bg-muted/5 print:p-1 print:border-b">
@@ -404,7 +406,10 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
             doc.text(section.title, margin, cursorY);
             cursorY += 5;
 
-            const tableRows = section.student_admission_numbers.map((adm, sIdx) => {
+            // Sort logic added for PDF rows
+            const sortedAdmissionNumbers = [...section.student_admission_numbers].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+            const tableRows = sortedAdmissionNumbers.map((adm, sIdx) => {
                 const s = studentsMap.get(adm);
                 return [
                     (sIdx + 1).toString(),
