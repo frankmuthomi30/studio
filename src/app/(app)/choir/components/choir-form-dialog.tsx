@@ -4,10 +4,12 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { saveChoir } from '../actions';
 import { type Choir } from '@/lib/types';
 import { useEffect, useTransition } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import {
   Dialog,
@@ -40,6 +42,7 @@ export default function ChoirFormDialog({ isOpen, setIsOpen, choir }: ChoirFormD
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useUser();
+  const firestore = useFirestore();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,36 +67,45 @@ export default function ChoirFormDialog({ isOpen, setIsOpen, choir }: ChoirFormD
   }, [choir, form, isOpen]);
 
   const onSubmit: SubmitHandler<FormValues> = (values) => {
-    if (!user) {
-        toast({
-          variant: 'destructive',
-          title: 'Not Authenticated',
-          description: 'You must be logged in to save a choir.',
-        });
+    if (!user || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication required.' });
         return;
     }
     startTransition(async () => {
-      const payload: Partial<Choir> = {
-        ...values,
-      };
       if (choir?.id) {
-        payload.id = choir.id;
-      }
-
-      const result = await saveChoir(payload, user.uid);
-
-      if (result.success) {
-        toast({
-          title: 'Success!',
-          description: result.message,
-        });
-        setIsOpen(false);
+        // Update
+        const choirRef = doc(firestore, 'choirs', choir.id);
+        setDoc(choirRef, values, { merge: true })
+          .then(() => {
+            toast({ title: 'Success', description: 'Choir updated successfully.' });
+            setIsOpen(false);
+          })
+          .catch(async () => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: choirRef.path,
+              operation: 'update',
+              requestResourceData: values
+            }));
+          });
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.message,
-        });
+        // Create
+        const choirData = {
+          ...values,
+          created_at: serverTimestamp(),
+          created_by: user.uid,
+        };
+        addDoc(collection(firestore, 'choirs'), choirData)
+          .then(() => {
+            toast({ title: 'Success', description: 'Choir created successfully.' });
+            setIsOpen(false);
+          })
+          .catch(async () => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+              path: 'choirs',
+              operation: 'create',
+              requestResourceData: choirData
+            }));
+          });
       }
     });
   };
@@ -129,7 +141,7 @@ export default function ChoirFormDialog({ isOpen, setIsOpen, choir }: ChoirFormD
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="A brief description of the choir's purpose or members." {...field} />
+                    <Textarea placeholder="A brief description of the choir." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

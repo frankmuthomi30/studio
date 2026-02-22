@@ -10,6 +10,10 @@
         "last_name": { "type": "string" },
         "class": { "type": "string" },
         "stream": { "type": "string" },
+        "gender": { "type": "string" },
+        "upi": { "type": "string" },
+        "common_kcse": { "type": "number" },
+        "contacts": { "type": "string" },
         "uploaded_at": { "type": "string", "format": "date-time" },
         "uploaded_by": { "type": "string" }
       },
@@ -52,7 +56,8 @@
         "practice_type": { "type": "string" },
         "attendance_map": { "type": "object" },
         "recorded_by": { "type": "string" },
-        "recorded_at": { "type": "string", "format": "date-time" }
+        "recorded_at": { "type": "string", "format": "date-time" },
+        "locked": { "type": "boolean" }
       }
     },
     "CustomList": {
@@ -64,7 +69,9 @@
         "title": { "type": "string" },
         "prepared_by": { "type": "string" },
         "sections": { "type": "array" },
-        "event_date": { "type": "string", "format": "date-time" }
+        "event_date": { "type": "string", "format": "date-time" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
       }
     }
   },

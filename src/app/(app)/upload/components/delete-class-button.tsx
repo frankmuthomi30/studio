@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +15,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteStudentsByClass } from '@/app/(app)/upload/actions';
+import { useFirestore } from '@/firebase';
+import { collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type DeleteClassButtonProps = {
   className: string;
@@ -25,21 +28,30 @@ type DeleteClassButtonProps = {
 export default function DeleteClassButton({ className, studentCount }: DeleteClassButtonProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const handleDelete = () => {
+    if (!firestore) return;
     startTransition(async () => {
-      const result = await deleteStudentsByClass(className);
-      if (result.success) {
-        toast({
-          title: 'Success!',
-          description: result.message,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: result.message,
-        });
+      try {
+        const q = query(collection(firestore, 'students'), where('class', '==', className));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+          toast({ title: 'Info', description: 'No students found.' });
+          return;
+        }
+
+        const batch = writeBatch(firestore);
+        snap.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+
+        toast({ title: 'Success', description: `Deleted ${snap.size} students from ${className}.` });
+      } catch (error: any) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: 'students',
+          operation: 'delete'
+        }));
       }
     });
   };
@@ -53,18 +65,14 @@ export default function DeleteClassButton({ className, studentCount }: DeleteCla
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>Delete Class Data?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete all <strong>{studentCount} student records</strong> for <strong>{className}</strong>.
-            <br/><br/>
-            This action <strong>will not</strong> delete any choir membership statuses or past attendance records.
+            Permanently delete all <strong>{studentCount}</strong> records for <strong>{className}</strong>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
-            Yes, delete them
-          </AlertDialogAction>
+          <AlertDialogAction onClick={handleDelete} className="bg-destructive">Delete</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

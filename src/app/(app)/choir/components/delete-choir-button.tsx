@@ -15,7 +15,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteChoir } from '../actions';
+import { useFirestore } from '@/firebase';
+import { doc, deleteDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type DeleteChoirButtonProps = {
   choirId: string;
@@ -25,21 +28,30 @@ type DeleteChoirButtonProps = {
 export default function DeleteChoirButton({ choirId, choirName }: DeleteChoirButtonProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const handleDelete = () => {
+    if (!firestore) return;
     startTransition(async () => {
-      const result = await deleteChoir(choirId);
-      if (result.success) {
-        toast({
-          title: 'Success!',
-          description: result.message,
+      const choirRef = doc(firestore, 'choirs', choirId);
+      const membersRef = collection(firestore, 'choirs', choirId, 'members');
+
+      try {
+        const membersSnapshot = await getDocs(membersRef);
+        const batch = writeBatch(firestore);
+
+        membersSnapshot.forEach(memberDoc => {
+          batch.delete(memberDoc.ref);
         });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: result.message,
-        });
+        batch.delete(choirRef);
+
+        await batch.commit();
+        toast({ title: 'Success', description: 'Choir deleted successfully.' });
+      } catch (error: any) {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: choirRef.path,
+          operation: 'delete'
+        }));
       }
     });
   };
@@ -56,9 +68,7 @@ export default function DeleteChoirButton({ choirId, choirName }: DeleteChoirBut
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the <strong>{choirName}</strong> choir record.
-            <br/><br/>
-            Associated choir member data and past attendance sessions will become orphaned and may no longer be accessible as expected.
+            This action cannot be undone. This will permanently delete <strong>{choirName}</strong> and all its members.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -1,27 +1,40 @@
 /**
- * Core Philosophy: This ruleset enforces a secure "Authenticated staff" model.
- * Any user who is signed into the application can read and write data.
+ * Core Philosophy: Authenticated school staff model.
+ * Any user signed into the application can manage school records.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --------------------------------
-    // Helper Functions
-    // --------------------------------
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // --------------------------------
-    // Global Access
-    // --------------------------------
-
-    // Allow authenticated staff to read and write all school documents
-    // This supports both direct document access and collection listings/queries.
-    match /{document=**} {
+    // Allow authenticated staff to manage all primary collections
+    match /students/{studentId} {
       allow read, write: if isSignedIn();
+    }
+
+    match /choirs/{choirId} {
+      allow read, write: if isSignedIn();
+      
+      // Nested members collection
+      match /members/{memberId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    match /choir_attendance/{sessionId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /custom_lists/{listId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Support collectionGroup queries for the Dashboard (e.g. counting all members)
+    match /{path=**}/members/{memberId} {
+      allow read: if isSignedIn();
     }
   }
 }

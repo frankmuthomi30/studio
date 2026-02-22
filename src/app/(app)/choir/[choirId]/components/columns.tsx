@@ -1,6 +1,6 @@
 'use client';
 
-import type { ColumnDef, Table } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { Student, StudentWithChoirStatus } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUpDown, MoreHorizontal, CheckCircle, XCircle, UserPlus, UserX } from 'lucide-react';
@@ -14,8 +14,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useTransition } from 'react';
-import { addStudentToChoir, removeStudentFromChoir, setMemberStatus } from '../../actions';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const StatusBadge = ({ status }: { status: 'active' | 'inactive' | 'not_member' }) => {
   switch (status) {
@@ -78,49 +81,63 @@ export const columns = ({ choirId, choirName }: ColumnsFnProps ): ColumnDef<Stud
       const student = row.original;
       const [isPending, startTransition] = useTransition();
       const { toast } = useToast();
+      const firestore = useFirestore();
       const { userId } = table.options.meta as { userId?: string };
+
+      const memberRef = doc(firestore, 'choirs', choirId, 'members', student.admission_number);
 
       const handleAdd = () => {
         if (!userId) {
-            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to add a student.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
             return;
         }
         startTransition(async () => {
-          const plainStudent: Partial<Student> = {
+          const memberData = {
             admission_number: student.admission_number,
             first_name: student.first_name,
             last_name: student.last_name,
             class: student.class,
-            stream: student.stream,
+            status: 'active',
+            date_joined: serverTimestamp(),
+            added_by: userId,
           };
-          const result = await addStudentToChoir(choirId, plainStudent as Student, userId);
-          if (result.success) {
-            toast({ title: 'Success', description: result.message });
-          } else {
-            toast({ variant: 'destructive', title: 'Error', description: result.message });
-          }
+
+          setDoc(memberRef, memberData)
+            .then(() => toast({ title: 'Success', description: `${student.first_name} added to choir.` }))
+            .catch(async () => {
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: memberRef.path,
+                operation: 'create',
+                requestResourceData: memberData
+              }));
+            });
         });
       };
 
       const handleRemove = () => {
         startTransition(async () => {
-            const result = await removeStudentFromChoir(choirId, student.admission_number);
-            if (result.success) {
-              toast({ title: 'Success', description: result.message });
-            } else {
-              toast({ variant: 'destructive', title: 'Error', description: result.message });
-            }
+            deleteDoc(memberRef)
+              .then(() => toast({ title: 'Success', description: 'Student removed from choir.' }))
+              .catch(async () => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: memberRef.path,
+                  operation: 'delete'
+                }));
+              });
           });
       }
 
       const handleSetStatus = (newStatus: 'active' | 'inactive') => {
         startTransition(async () => {
-            const result = await setMemberStatus(choirId, student.admission_number, newStatus);
-            if (result.success) {
-              toast({ title: 'Success', description: result.message });
-            } else {
-              toast({ variant: 'destructive', title: 'Error', description: result.message });
-            }
+            setDoc(memberRef, { status: newStatus }, { merge: true })
+              .then(() => toast({ title: 'Success', description: `Member status updated to ${newStatus}.` }))
+              .catch(async () => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                  path: memberRef.path,
+                  operation: 'update',
+                  requestResourceData: { status: newStatus }
+                }));
+              });
           });
       }
 
