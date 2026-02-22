@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +15,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteAttendanceSession } from '@/app/(app)/attendance/actions';
+import { useFirestore } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type DeleteSessionButtonProps = {
   sessionId: string;
@@ -24,22 +27,29 @@ type DeleteSessionButtonProps = {
 export default function DeleteSessionButton({ sessionId }: DeleteSessionButtonProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const handleDelete = () => {
+    if (!firestore) return;
+
     startTransition(async () => {
-      const result = await deleteAttendanceSession(sessionId);
-      if (result.success) {
-        toast({
-          title: 'Success!',
-          description: result.message,
+      const sessionRef = doc(firestore, 'choir_attendance', sessionId);
+      
+      deleteDoc(sessionRef)
+        .then(() => {
+          toast({
+            title: 'Success!',
+            description: 'Attendance session has been deleted successfully.',
+          });
+        })
+        .catch(async (error) => {
+          // Construct contextual error for better debugging if it still fails
+          const permissionError = new FirestorePermissionError({
+            path: sessionRef.path,
+            operation: 'delete',
+          });
+          errorEmitter.emit('permission-error', permissionError);
         });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: result.message,
-        });
-      }
     });
   };
 
@@ -60,7 +70,7 @@ export default function DeleteSessionButton({ sessionId }: DeleteSessionButtonPr
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
-            Yes, delete it
+            {isPending ? 'Deleting...' : 'Yes, delete it'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

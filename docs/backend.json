@@ -10,7 +10,6 @@
         "last_name": { "type": "string" },
         "class": { "type": "string" },
         "stream": { "type": "string" },
-        "gender": { "type": "string" },
         "uploaded_at": { "type": "string", "format": "date-time" },
         "uploaded_by": { "type": "string" }
       },
