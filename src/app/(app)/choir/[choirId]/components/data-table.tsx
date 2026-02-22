@@ -29,7 +29,7 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu"
-import { Filter } from 'lucide-react';
+import { Filter, Search } from 'lucide-react';
 import type { StudentWithChoirStatus } from '@/lib/types';
 
 interface DataTableProps<TData, TValue> {
@@ -47,6 +47,7 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
 
   const table = useReactTable({
     data,
@@ -57,10 +58,12 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
       columnFilters,
+      globalFilter,
     },
     initialState: {
         pagination: {
@@ -74,14 +77,15 @@ export function DataTable<TData extends StudentWithChoirStatus, TValue>({
   return (
     <div>
         <div className="flex items-center py-4 gap-2">
-            <Input
-                placeholder="Filter by name..."
-                value={(table.getColumn('fullName')?.getFilterValue() as string) ?? ''}
-                onChange={(event) =>
-                    table.getColumn('fullName')?.setFilterValue(event.target.value)
-                }
-                className="max-w-sm"
-            />
+            <div className="relative max-w-sm flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search name or admission no..."
+                    value={globalFilter ?? ''}
+                    onChange={(event) => setGlobalFilter(event.target.value)}
+                    className="pl-9"
+                />
+            </div>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="ml-auto">
