@@ -365,7 +365,6 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 15;
 
-        // Header and serial logic similar to other reports
         doc.setFontSize(7);
         doc.setTextColor(150);
         doc.text(`Serial: ${serialNumber}`, pageWidth - margin, 8, { align: 'right' });
@@ -629,7 +628,7 @@ export default function ListBuilderClient() {
                             <Button variant="ghost" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
                             <Button onClick={handleCreate} disabled={isCreating}>{isCreating && <Loader2 className="animate-spin mr-2"/>} Create</Button>
                         </CardFooter>
-                    </div>
+                    </Card>
                  </div>
             )}
         </div>

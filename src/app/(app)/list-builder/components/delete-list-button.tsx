@@ -15,7 +15,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { deleteList } from '../actions';
+import { useFirestore } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type DeleteListButtonProps = {
   listId: string;
@@ -25,22 +28,26 @@ type DeleteListButtonProps = {
 export default function DeleteListButton({ listId, listTitle }: DeleteListButtonProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const handleDelete = () => {
+    if (!firestore) return;
     startTransition(async () => {
-      const result = await deleteList(listId);
-      if (result.success) {
-        toast({
-          title: 'Success!',
-          description: result.message,
+      const listRef = doc(firestore, 'custom_lists', listId);
+      
+      deleteDoc(listRef)
+        .then(() => {
+          toast({
+            title: 'Success!',
+            description: `List '${listTitle}' has been deleted.`,
+          });
+        })
+        .catch(async () => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: listRef.path,
+            operation: 'delete'
+          }));
         });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Deletion Failed',
-          description: result.message,
-        });
-      }
     });
   };
 
