@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, LogIn, ShieldCheck } from 'lucide-react';
 import Logo from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
+import SplashScreen from '@/components/splash-screen';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -61,14 +62,7 @@ export default function LoginPage() {
   };
   
   if (isUserLoading || user) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-sm font-bold text-primary animate-pulse tracking-widest uppercase">Authorizing...</p>
-            </div>
-        </div>
-    );
+    return <SplashScreen />;
   }
 
   return (
@@ -79,7 +73,7 @@ export default function LoginPage() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 rounded-full blur-[120px]" />
       </div>
 
-      <div className="w-full max-w-lg space-y-8">
+      <div className="w-full max-w-lg space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex flex-col items-center text-center space-y-2">
             <Logo />
             <h1 className="text-3xl font-bold mt-6 tracking-tight">Staff Portal</h1>
@@ -132,7 +126,7 @@ export default function LoginPage() {
                   )}
                 />
                 <Button type="submit" className="w-full h-12 rounded-xl text-md font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" disabled={isSigningIn}>
-                  {isSigningIn ? <Loader2 className="animate-spin" /> : <LogIn className="h-5 w-5 mr-2" />}
+                  {isSigningIn ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <LogIn className="h-5 w-5 mr-2" />}
                   {isSigningIn ? 'Verifying...' : 'Access Hub'}
                 </Button>
               </form>
@@ -142,7 +136,7 @@ export default function LoginPage() {
         
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
             <ShieldCheck className="h-4 w-4" />
-            <p className="text-xs font-medium">Authorized Personnel Only</p>
+            <p className="text-xs font-medium uppercase tracking-widest">Authorized Personnel Only</p>
         </div>
       </div>
     </div>

@@ -54,16 +54,18 @@ export default function DashboardPage() {
 
   if (isLoading) {
       return (
-        <>
-          <PageHeader
-            title="Dashboard"
-            subtitle="Authorizing and loading choir statistics..."
-          />
-          <div className="flex flex-col justify-center items-center h-96 gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-sm font-bold text-muted-foreground animate-pulse uppercase tracking-widest">Preparing Harmony Hub...</p>
+        <div className="flex flex-col items-center justify-center min-h-[80vh] space-y-6">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse" />
+            <div className="relative rounded-2xl bg-card border p-4 shadow-xl">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
           </div>
-        </>
+          <div className="text-center space-y-1">
+            <p className="text-sm font-black text-primary animate-pulse uppercase tracking-[0.3em]">Harmony Hub</p>
+            <p className="text-xs text-muted-foreground font-medium">Synchronizing school data...</p>
+          </div>
+        </div>
       )
   }
 
@@ -81,7 +83,7 @@ export default function DashboardPage() {
   const percentageDiff = attendancePercentage - prevPercentage;
 
   return (
-    <>
+    <div className="animate-in fade-in duration-700">
       <PageHeader
         title="Harmony Dashboard"
         subtitle="Welcome back! Here is an overview of the choir's recent performance."
@@ -127,7 +129,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Chart Section */}
           <Card className="lg:col-span-2 shadow-xl shadow-primary/5 border-border/50 overflow-hidden">
             <CardHeader className="bg-muted/20 border-b pb-4">
               <div className="flex items-center justify-between">
@@ -200,7 +201,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Activity Section */}
           <Card className="shadow-xl shadow-primary/5 border-border/50">
             <CardHeader className="bg-muted/20 border-b pb-4">
               <CardTitle className='text-lg flex items-center gap-2'>
@@ -244,6 +244,6 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 }

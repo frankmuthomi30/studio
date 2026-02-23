@@ -2,11 +2,12 @@
 
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { ArrowRight, Loader2, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import SplashScreen from '@/components/splash-screen';
 
 export default function LandingPage() {
   const { user, isUserLoading } = useUser();
@@ -19,46 +20,48 @@ export default function LandingPage() {
     }
   }, [user, isUserLoading, router]);
 
-  // While checking auth state or if user exists, show a loader.
-  // This prevents a flash of the landing page before redirecting.
   if (isUserLoading || user) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      );
+      return <SplashScreen />;
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="p-4 sm:p-6">
+    <div className="flex min-h-screen flex-col bg-background selection:bg-primary/10">
+      <header className="p-6 md:p-8">
         <Logo />
       </header>
-      <main className="flex flex-1 items-center justify-center p-4">
-        <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-              Welcome to Gatura Harmony Hub
+      
+      <main className="flex flex-1 items-center justify-center p-6">
+        <div className="absolute inset-0 overflow-hidden -z-10 opacity-30">
+          <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-accent/10 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="mx-auto flex w-full max-w-2xl flex-col items-center text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          <div className="space-y-4">
+            <h1 className="font-headline text-5xl md:text-7xl font-bold tracking-tighter text-foreground leading-[1.1]">
+              Gatura <span className="text-primary">Harmony Hub</span>
             </h1>
-            <p className="text-muted-foreground md:text-xl">
-              The complete solution for managing Gatura Girls High School choir's attendance and lists.
+            <p className="text-muted-foreground text-lg md:text-xl max-w-lg mx-auto font-medium">
+              The premier school platform for managing the Gatura Girls High School choir records and attendance.
             </p>
           </div>
-          <div className="w-full space-y-4">
-            <Button asChild size="lg" className="w-full">
+          
+          <div className="w-full max-w-sm space-y-4">
+            <Button asChild size="lg" className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95">
                 <Link href="/login">
-                    <LogIn className="mr-2" />
-                    Proceed to Login
+                    <LogIn className="mr-2 h-5 w-5" />
+                    Proceed to Portal
                 </Link>
             </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              Login to access the dashboard. Please contact the administrator if you need an account.
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-[0.2em]">
+              Authorized Staff Access Only
             </p>
           </div>
         </div>
       </main>
-      <footer className="p-4 text-center text-sm text-muted-foreground sm:p-6">
-        © {new Date().getFullYear()} Gatura Harmony Hub. All Rights Reserved.
+      
+      <footer className="p-8 text-center text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em] sm:p-10">
+        © {new Date().getFullYear()} Gatura Girls High School. All Rights Reserved.
       </footer>
     </div>
   );
