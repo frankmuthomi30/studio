@@ -24,27 +24,27 @@ export default function DashboardCard({
   className,
 }: DashboardCardProps) {
   return (
-    <Card className={cn("overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 group border-border/50", className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/20">
-        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{title}</CardTitle>
-        <div className="rounded-full bg-primary/10 p-2 text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+    <Card className={cn("overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 group border-border/50 bg-card/50 backdrop-blur-sm", className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-muted/30">
+        <CardTitle className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">{title}</CardTitle>
+        <div className="rounded-xl bg-primary/10 p-2.5 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground group-hover:rotate-12">
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
-        <div className="text-3xl font-bold tracking-tight mb-1">{value}</div>
+      <CardContent className="pt-6">
+        <div className="text-4xl font-bold tracking-tighter mb-1.5 font-headline">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground line-clamp-1">{description}</p>
+          <p className="text-xs text-muted-foreground font-medium line-clamp-1 opacity-80">{description}</p>
         )}
         {trend && (
-          <div className="mt-3 flex items-center gap-1.5">
-            <span className={cn(
-              "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-              trend.isPositive ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          <div className="mt-4 flex items-center gap-2">
+            <div className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center",
+              trend.isPositive ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
             )}>
               {trend.value}
-            </span>
-            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">{trend.label}</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{trend.label}</span>
           </div>
         )}
       </CardContent>
