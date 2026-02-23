@@ -111,7 +111,7 @@ export default function IndividualReportPage() {
             date: session.date.toDate(),
             practice_type: session.practice_type,
             status: session.attendance_map[student.admission_number]
-        })).sort((a, b) => b.date.getTime() - a.date.date.getTime());
+        })).sort((a, b) => b.date.getTime() - a.date.getTime());
         
         const totalSessions = attendanceData.length;
         const presentCount = attendanceData.filter(rec => rec.status).length;
@@ -278,13 +278,13 @@ export default function IndividualReportPage() {
             generateStudentReportOnDoc(doc, sortedStudents[i], selectedChoir, attendanceSessions, 0);
         }
 
-        doc.save(`${selectedChoir.name}-Full-Individual-Reports-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.save(`${selectedChoir.name}-Full-Individual-Reports-${format(new Date(), 'uuid-MM-dd')}.pdf`);
         setIsBulkGenerating(false);
     }
 
     const studentAttendanceSessions = useMemo(() => {
         if (!attendanceSessions || !studentToReport) return [];
-        const sortedSessions = [...attendanceSessions].sort((a, b) => a.date.toMillis() - b.date.toMillis());
+        const sortedSessions = [...attendanceSessions].sort((a, b) => b.date.toMillis() - a.date.toMillis());
         return sortedSessions.filter(session => session.attendance_map.hasOwnProperty(studentToReport.admission_number));
     }, [attendanceSessions, studentToReport]);
 
