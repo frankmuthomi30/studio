@@ -145,7 +145,7 @@ export default function DashboardPage() {
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
-                      <CartGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted-foreground))" opacity={0.1} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted-foreground))" opacity={0.1} />
                       <XAxis 
                         dataKey="name" 
                         axisLine={false} 
