@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 
 export default function IndividualReportPage() {
     const firestore = useFirestore();
-    const { isUserLoading: authLoading } = useUser();
+    const { user, isUserLoading: authLoading } = useUser();
     const [selectedChoirId, setSelectedChoirId] = useState<string | null>(null);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [studentToReport, setStudentToReport] = useState<Student | null>(null);
@@ -271,14 +271,17 @@ export default function IndividualReportPage() {
         setIsBulkGenerating(true);
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         
-        const sortedStudents = [...choirStudents].sort((a,b) => (a.first_name || '').localeCompare(b.first_name || ''));
+        // Numerically sort students by admission number for bulk export
+        const sortedStudents = [...choirStudents].sort((a, b) => 
+            (a.admission_number || '').localeCompare(b.admission_number || '', undefined, { numeric: true })
+        );
 
         for (let i = 0; i < sortedStudents.length; i++) {
             if (i > 0) doc.addPage();
             generateStudentReportOnDoc(doc, sortedStudents[i], selectedChoir, attendanceSessions, 0);
         }
 
-        doc.save(`${selectedChoir.name}-Full-Individual-Reports-${format(new Date(), 'uuid-MM-dd')}.pdf`);
+        doc.save(`${selectedChoir.name}-Full-Individual-Reports-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         setIsBulkGenerating(false);
     }
 
@@ -341,7 +344,10 @@ export default function IndividualReportPage() {
                                                 <SelectValue placeholder={selectedChoirId ? `Results (${filteredStudents.length})` : "Select choir first"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {filteredStudents?.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map(student => (
+                                                {/* Numeric sorting by admission number in selection dropdown */}
+                                                {filteredStudents?.sort((a, b) => 
+                                                    (a.admission_number || '').localeCompare(b.admission_number || '', undefined, { numeric: true })
+                                                ).map(student => (
                                                     <SelectItem key={student.id} value={student.id!}>
                                                         {student.first_name} {student.last_name} ({student.admission_number})
                                                     </SelectItem>
