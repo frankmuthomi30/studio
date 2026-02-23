@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -16,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import Logo from './logo';
 import { useAuth } from '@/firebase';
+import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -45,9 +47,9 @@ export default function MainSidebar() {
             key={item.href}
             href={item.href}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary',
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary hover:bg-muted/50',
               (pathname.startsWith(item.href) && item.href !== '/dashboard') || pathname === item.href
-                ? 'bg-muted text-primary'
+                ? 'bg-muted text-primary font-semibold shadow-sm'
                 : ''
             )}
           >
@@ -56,10 +58,14 @@ export default function MainSidebar() {
           </Link>
         ))}
       </nav>
-      <div className="mt-auto border-t p-4">
+      <div className="mt-auto border-t p-4 space-y-2">
+        <div className="flex items-center justify-between px-3">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Appearance</span>
+          <ThemeToggle />
+        </div>
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/5"
         >
           <LogOut className="h-5 w-5" />
           <span className="font-medium">Logout</span>

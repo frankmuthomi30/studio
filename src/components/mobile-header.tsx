@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -19,6 +20,7 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription, SheetTrigger } from 
 import Logo from './logo';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/firebase';
+import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -44,48 +46,51 @@ export function MobileHeader() {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-4 md:hidden">
       <Logo />
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <Menu className="h-6 w-6" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-full max-w-xs p-0">
-          <div className="flex h-16 items-center border-b px-6">
-            <Logo />
-            <SheetTitle className="sr-only">Main Menu</SheetTitle>
-            <SheetDescription className="sr-only">Main navigation menu for the application.</SheetDescription>
-          </div>
-          <nav className="flex-1 space-y-1 p-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeSheet}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary',
-                  (pathname.startsWith(item.href) && item.href !== '/dashboard') || pathname === item.href
-                    ? 'bg-muted text-primary'
-                    : ''
-                )}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-6 w-6" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-full max-w-xs p-0">
+            <div className="flex h-16 items-center border-b px-6">
+              <Logo />
+              <SheetTitle className="sr-only">Main Menu</SheetTitle>
+              <SheetDescription className="sr-only">Main navigation menu for the application.</SheetDescription>
+            </div>
+            <nav className="flex-1 space-y-1 p-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeSheet}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary hover:bg-muted/50',
+                    (pathname.startsWith(item.href) && item.href !== '/dashboard') || pathname === item.href
+                      ? 'bg-muted text-primary font-semibold shadow-sm'
+                      : ''
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+            <div className="absolute bottom-0 w-full border-t p-4">
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-destructive hover:bg-destructive/5"
               >
-                <item.icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-          <div className="absolute bottom-0 w-full border-t p-4">
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-primary"
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="font-medium">Logout</span>
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
+                <LogOut className="h-5 w-5" />
+                <span className="font-medium">Logout</span>
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </header>
   );
 }
