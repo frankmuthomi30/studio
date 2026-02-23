@@ -2,7 +2,7 @@
 import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { CustomList, Student, ListSection } from '@/lib/types';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, getDoc, getDocs, orderBy, setDoc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, query, where, doc, getDoc, getDocs, orderBy, setDoc, serverTimestamp, addDoc, Timestamp } from 'firebase/firestore';
 import { Loader2, Plus, Printer, Search, Edit, ListPlus, Users, X, Check, CalendarIcon, Trash2, UserPlus, ArrowDown, FileDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -321,7 +321,7 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                 title: listTitle,
                 prepared_by: preparedBy,
                 sections: sections,
-                event_date: eventDate ? eventDate : null,
+                event_date: eventDate ? Timestamp.fromDate(eventDate) : null,
                 updated_at: serverTimestamp(),
             };
             const listRef = doc(firestore, 'custom_lists', list.id);
@@ -400,13 +400,20 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
 
         cursorY += 25;
 
+        if (eventDate) {
+            doc.setFont('times', 'normal');
+            doc.setFontSize(10);
+            doc.text(`Date: ${format(eventDate, 'PPP')}`, pageWidth - margin, cursorY, { align: 'right' });
+            cursorY += 8;
+        }
+
         sections.forEach((section, index) => {
             doc.setFont('times', 'bold');
             doc.setFontSize(11);
             doc.text(section.title, margin, cursorY);
             cursorY += 5;
 
-            // Sort logic added for PDF rows
+            // Sort logic for PDF rows: Numerical by Admission Number
             const sortedAdmissionNumbers = [...section.student_admission_numbers].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
             const tableRows = sortedAdmissionNumbers.map((adm, sIdx) => {
@@ -481,9 +488,7 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                 </div>
             </div>
 
-            {/* Main Editor & Printable Area */}
             <div className="print-container">
-                {/* Print-only Header (Visible in Editor for Preview) */}
                 <div className="mb-8 border-b-2 border-gray-800 pb-4">
                     <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
@@ -505,12 +510,12 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                         </div>
                         <div className="text-right">
                             <h3 className="font-headline text-lg text-gray-700">{listTitle}</h3>
+                            {eventDate && <p className="text-xs text-muted-foreground">{format(eventDate, 'PPPP')}</p>}
                         </div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Editor Controls - Hidden in Print */}
                     <div className="lg:col-span-1 space-y-4 no-print">
                         <Card>
                             <CardHeader><CardTitle className="text-lg">Editor Info</CardTitle></CardHeader>
@@ -518,6 +523,31 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                                 <div className="space-y-2">
                                     <Label>Main Title</Label>
                                     <Input value={listTitle} onChange={(e) => setListTitle(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Event Date</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !eventDate && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {eventDate ? format(eventDate, "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={eventDate}
+                                                onSelect={setEventDate}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Prepared By</Label>
@@ -528,7 +558,6 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                         <Button variant="outline" className="w-full border-dashed" onClick={handleAddSection}><Plus className="mr-2"/> Add Section</Button>
                     </div>
 
-                    {/* Content Section - Expanded in Print */}
                     <div className="lg:col-span-3 print:col-span-4 space-y-8">
                         {sections.map((section, idx) => (
                             <SectionCard 
@@ -545,7 +574,6 @@ function ListEditor({ list, onBack }: { list: CustomList; onBack: () => void }) 
                             />
                         ))}
                         
-                        {/* Signature and Footer Area */}
                         <div className="mt-12 pt-8 border-t space-y-8">
                             <div className="grid grid-cols-2 gap-12">
                                 <div className="space-y-1">
