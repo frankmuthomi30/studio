@@ -10,7 +10,7 @@ import {
     SelectValue,
   } from "@/components/ui/select"
 import { Button } from '@/components/ui/button';
-import { Loader2, Search, Download } from 'lucide-react';
+import { Loader2, Search, Download, FileDown, UserSearch } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState, useMemo } from 'react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
@@ -30,6 +30,8 @@ export default function IndividualReportPage() {
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [studentToReport, setStudentToReport] = useState<Student | null>(null);
     const [preparerName, setPreparerName] = useState('Mr. Muthomi (Choir Director)');
+    const [studentSearch, setStudentSearch] = useState('');
+    const [isBulkGenerating, setIsBulkGenerating] = useState(false);
     
     // 1. Fetch all choirs
     const choirsQuery = useMemoFirebase(() => 
@@ -71,6 +73,16 @@ export default function IndividualReportPage() {
         return students.filter(student => memberAdmissionNumbers.has(student.admission_number));
     }, [students, choirMembers]);
 
+    const filteredStudents = useMemo(() => {
+        if (!studentSearch) return choirStudents;
+        const term = studentSearch.toLowerCase();
+        return choirStudents.filter(s => 
+            s.first_name.toLowerCase().includes(term) || 
+            s.last_name.toLowerCase().includes(term) || 
+            s.admission_number.toLowerCase().includes(term)
+        );
+    }, [choirStudents, studentSearch]);
+
     const isLoading = authLoading || choirsLoading || studentsLoading || membersLoading;
     const isGenerating = !!studentToReport && attendanceLoading;
 
@@ -78,6 +90,7 @@ export default function IndividualReportPage() {
         setSelectedChoirId(choirId);
         setSelectedStudentId(null);
         setStudentToReport(null);
+        setStudentSearch('');
     }
 
     const handleGenerateReport = () => {
@@ -87,21 +100,18 @@ export default function IndividualReportPage() {
         }
     }
 
-    const handleExportPdf = () => {
-        if (!studentToReport || !selectedChoir) return;
-
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const generateStudentReportOnDoc = (doc: jsPDF, student: Student, choir: Choir, sessions: AttendanceSession[], cursorY: number) => {
         const schoolLogo = PlaceHolderImages.find(img => img.id === 'school_logo');
         const now = new Date();
         const serialNumber = `GGHS/${format(now, 'yyyyMMdd')}/${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         
-        const relevantSessions = (attendanceSessions ?? []).filter(session => session.attendance_map.hasOwnProperty(studentToReport.admission_number));
+        const relevantSessions = sessions.filter(session => session.attendance_map.hasOwnProperty(student.admission_number));
 
         const attendanceData = relevantSessions.map(session => ({
             date: session.date.toDate(),
             practice_type: session.practice_type,
-            status: session.attendance_map[studentToReport.admission_number]
-        }));
+            status: session.attendance_map[student.admission_number]
+        })).sort((a, b) => b.date.getTime() - a.date.date.getTime());
         
         const totalSessions = attendanceData.length;
         const presentCount = attendanceData.filter(rec => rec.status).length;
@@ -119,54 +129,54 @@ export default function IndividualReportPage() {
         doc.text(`Generated: ${format(now, 'dd/MM/yyyy HH:mm')}`, pageWidth - margin, 11, { align: 'right' });
         doc.setTextColor(0);
 
-        let cursorY = 12;
+        let y = 12;
 
-        // PDF Header - Tighter
+        // PDF Header
         if (schoolLogo?.imageUrl) {
-            doc.addImage(schoolLogo.imageUrl, 'PNG', margin, cursorY, 18, 18);
+            doc.addImage(schoolLogo.imageUrl, 'PNG', margin, y, 18, 18);
         }
         doc.setFont('times', 'bold');
         doc.setFontSize(18);
-        doc.text("GATURA GIRLS", margin + 22, cursorY + 6);
+        doc.text("GATURA GIRLS", margin + 22, y + 6);
     
         doc.setFont('times', 'normal');
         doc.setFontSize(8.5);
-        doc.text("30-01013, Muranga.", margin + 22, cursorY + 10);
-        doc.text("gaturagirls@gmail.com | 0793328863", margin + 22, cursorY + 14);
+        doc.text("30-01013, Muranga.", margin + 22, y + 10);
+        doc.text("gaturagirls@gmail.com | 0793328863", margin + 22, y + 14);
         
         doc.setFont('times', 'bold');
         doc.setFontSize(13);
-        doc.text(selectedChoir.name, pageWidth - margin, cursorY + 8, { align: 'right' });
+        doc.text(choir.name, pageWidth - margin, y + 8, { align: 'right' });
         doc.setFontSize(9);
         doc.setTextColor(100);
-        doc.text("Individual Attendance Report", pageWidth - margin, cursorY + 12, { align: 'right' });
+        doc.text("Individual Attendance Report", pageWidth - margin, y + 12, { align: 'right' });
         doc.setTextColor(0);
     
-        cursorY += 22;
+        y += 22;
 
-        // Student Details - Tighter
+        // Student Details
         doc.setFont('times', 'bold');
         doc.setFontSize(11);
-        doc.text('Student Details', margin, cursorY);
-        cursorY += 5;
+        doc.text('Student Details', margin, y);
+        y += 5;
 
         doc.setFont('times', 'normal');
         doc.setFontSize(9.5);
-        doc.text(`Full Name: ${studentToReport.first_name} ${studentToReport.last_name}`, margin, cursorY);
-        doc.text(`Admission Number: ${studentToReport.admission_number}`, pageWidth / 2, cursorY);
-        cursorY += 5;
-        doc.text(`Class: ${studentToReport.class} ${studentToReport.stream || ''}`, margin, cursorY);
-        cursorY += 5;
+        doc.text(`Full Name: ${student.first_name} ${student.last_name}`, margin, y);
+        doc.text(`Admission Number: ${student.admission_number}`, pageWidth / 2, y);
+        y += 5;
+        doc.text(`Class: ${student.class} ${student.stream || ''}`, margin, y);
+        y += 5;
         
         doc.setLineWidth(0.2);
-        doc.line(margin, cursorY, pageWidth - margin, cursorY);
-        cursorY += 6;
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 6;
 
-        // Attendance Summary - Tighter
+        // Attendance Summary
         doc.setFont('times', 'bold');
         doc.setFontSize(11);
-        doc.text('Attendance Summary', margin, cursorY);
-        cursorY += 6;
+        doc.text('Attendance Summary', margin, y);
+        y += 6;
 
         const summaryData = [
             { title: 'Total Sessions', value: totalSessions.toString() },
@@ -182,7 +192,7 @@ export default function IndividualReportPage() {
         doc.setTextColor(80);
         summaryData.forEach((item, index) => {
             const x = margin + (index * (cardWidth + 5));
-            doc.text(item.title, x + cardWidth/2, cursorY + 10, { align: 'center'});
+            doc.text(item.title, x + cardWidth/2, y + 10, { align: 'center'});
         });
         
         doc.setFontSize(14);
@@ -190,37 +200,43 @@ export default function IndividualReportPage() {
         doc.setTextColor(0);
         summaryData.forEach((item, index) => {
             const x = margin + (index * (cardWidth + 5));
-            doc.text(item.value, x + cardWidth/2, cursorY + 5, { align: 'center'});
+            doc.text(item.value, x + cardWidth/2, y + 5, { align: 'center'});
         });
 
-        cursorY += 18;
-        doc.line(margin, cursorY, pageWidth - margin, cursorY);
-        cursorY += 6;
+        y += 18;
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 6;
 
         // Attendance Table
         doc.setFont('times', 'bold');
         doc.setFontSize(11);
-        doc.text('Attendance Record', margin, cursorY);
-        cursorY += 5;
+        doc.text('Attendance Record', margin, y);
+        y += 5;
+
+        const tableRows = attendanceData.map(record => [
+            format(record.date, 'MMM dd, yyyy'),
+            record.practice_type,
+            record.status ? 'Present' : 'Absent'
+        ]);
 
         (doc as any).autoTable({
-            html: '#individual-report-table',
-            startY: cursorY,
+            head: [['Date', 'Practice Type', 'Status']],
+            body: tableRows,
+            startY: y,
             theme: 'grid',
             headStyles: { fillColor: '#107C41', textColor: 255, font: 'times', fontStyle: 'bold' },
             styles: { font: 'times', fontStyle: 'normal', cellPadding: 1.5, fontSize: 9 },
             margin: { left: margin, right: margin },
             didDrawPage: (data: any) => {
-                const pageCount = doc.internal.getNumberOfPages();
                 doc.setFontSize(8);
                 doc.setFont('times', 'normal');
                 doc.setTextColor(150);
-                const generatedOnText = `Generated by Gatura Hub on ${format(now, 'PPPP')}, at ${format(now, 'p')} — Page ${data.pageNumber} of ${pageCount}`;
+                const generatedOnText = `Generated by Gatura Hub on ${format(now, 'PPPP')}, at ${format(now, 'p')}`;
                 doc.text(generatedOnText, pageWidth / 2, pageHeight - 8, { align: 'center' });
             }
         });
         
-        let finalY = (doc as any).lastAutoTable.finalY || cursorY;
+        let finalY = (doc as any).lastAutoTable.finalY || y;
 
         // Footer
         let footerY = finalY + 20;
@@ -240,8 +256,30 @@ export default function IndividualReportPage() {
 
         doc.line(pageWidth - margin - signatureWidth, footerY, pageWidth - margin, footerY);
         doc.text("Date", pageWidth - margin - signatureWidth, footerY + 4);
+    };
 
-        doc.save(`Choir-Report-${studentToReport.admission_number}-${format(now, 'yyyy-MM-dd')}.pdf`);
+    const handleExportPdf = () => {
+        if (!studentToReport || !selectedChoir || !attendanceSessions) return;
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        generateStudentReportOnDoc(doc, studentToReport, selectedChoir, attendanceSessions, 0);
+        doc.save(`Choir-Report-${studentToReport.admission_number}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    };
+
+    const handleExportAllPdf = async () => {
+        if (!selectedChoir || !attendanceSessions || choirStudents.length === 0) return;
+        
+        setIsBulkGenerating(true);
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        
+        const sortedStudents = [...choirStudents].sort((a,b) => (a.first_name || '').localeCompare(b.first_name || ''));
+
+        for (let i = 0; i < sortedStudents.length; i++) {
+            if (i > 0) doc.addPage();
+            generateStudentReportOnDoc(doc, sortedStudents[i], selectedChoir, attendanceSessions, 0);
+        }
+
+        doc.save(`${selectedChoir.name}-Full-Individual-Reports-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        setIsBulkGenerating(false);
     }
 
     const studentAttendanceSessions = useMemo(() => {
@@ -260,16 +298,16 @@ export default function IndividualReportPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Select Report Criteria</CardTitle>
-                        <CardDescription>Choose a choir, then select a member and confirm the preparer's name.</CardDescription>
+                        <CardDescription>Choose a choir, find a member using the search filter, and confirm the preparer's name.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {isLoading ? (
                             <Loader2 className="animate-spin" />
                         ) : (
                             <>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                                     <div className="space-y-2">
-                                        <Label>Choir</Label>
+                                        <Label>1. Choir</Label>
                                         <Select onValueChange={handleChoirChange} value={selectedChoirId ?? undefined}>
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select a choir..." />
@@ -285,23 +323,38 @@ export default function IndividualReportPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>Student</Label>
+                                        <Label className="flex items-center gap-2">
+                                            <UserSearch className="h-3 w-3 text-primary"/> 2. Find Student
+                                        </Label>
+                                        <Input 
+                                            placeholder="Type name or adm no..." 
+                                            value={studentSearch} 
+                                            onChange={(e) => setStudentSearch(e.target.value)}
+                                            disabled={!selectedChoirId}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>3. Select Result</Label>
                                         <Select onValueChange={setSelectedStudentId} value={selectedStudentId ?? undefined} disabled={!selectedChoirId}>
                                             <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select a choir member..." />
+                                                <SelectValue placeholder={selectedChoirId ? `Results (${filteredStudents.length})` : "Select choir first"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {choirStudents?.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map(student => (
+                                                {filteredStudents?.sort((a,b) => (a.first_name || '').localeCompare(b.first_name || '')).map(student => (
                                                     <SelectItem key={student.id} value={student.id!}>
                                                         {student.first_name} {student.last_name} ({student.admission_number})
                                                     </SelectItem>
                                                 ))}
+                                                {filteredStudents.length === 0 && selectedChoirId && (
+                                                    <div className="p-2 text-xs text-center text-muted-foreground">No matches found</div>
+                                                )}
                                             </SelectContent>
                                         </Select>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>Prepared By (Footer)</Label>
+                                        <Label>4. Prepared By (Footer)</Label>
                                         <Input 
                                             value={preparerName} 
                                             onChange={(e) => setPreparerName(e.target.value)}
@@ -310,14 +363,24 @@ export default function IndividualReportPage() {
                                     </div>
                                 </div>
                                 
-                                <div className='flex items-center gap-2 pt-2'>
+                                <div className='flex flex-wrap items-center gap-3 pt-2'>
                                   <Button onClick={handleGenerateReport} disabled={!selectedStudentId || isGenerating}>
                                       {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                                      {isGenerating ? 'Loading...' : 'Generate Report'}
+                                      {isGenerating ? 'Loading...' : 'Generate Preview'}
                                   </Button>
                                   <Button onClick={handleExportPdf} disabled={!studentToReport || isGenerating} variant="outline">
                                       <Download className="mr-2 h-4 w-4" />
-                                      Export PDF
+                                      Download Current
+                                  </Button>
+                                  <div className="h-8 w-px bg-border mx-2 hidden md:block" />
+                                  <Button 
+                                    onClick={handleExportAllPdf} 
+                                    disabled={!selectedChoirId || attendanceLoading || isBulkGenerating || choirStudents.length === 0} 
+                                    variant="secondary"
+                                    className="bg-primary/10 text-primary hover:bg-primary/20"
+                                  >
+                                      {isBulkGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                                      Download All {selectedChoirId ? `(${choirStudents.length})` : ''} Reports
                                   </Button>
                                 </div>
                             </>
@@ -335,8 +398,12 @@ export default function IndividualReportPage() {
                             preparedBy={preparerName}
                         />
                     ) : (
-                        <div className="text-center p-8 text-muted-foreground border rounded-lg">
-                            <p>Select report criteria above and click "Generate Report".</p>
+                        <div className="text-center p-12 text-muted-foreground border-2 border-dashed rounded-2xl flex flex-col items-center gap-4 bg-muted/5">
+                            <UserSearch className="h-12 w-12 opacity-20" />
+                            <div className="space-y-1">
+                                <p className="font-bold">Ready to generate report</p>
+                                <p className="text-xs">Search for a student and click "Generate Preview" to see their history here.</p>
+                            </div>
                         </div>
                     )}
                 </div>
