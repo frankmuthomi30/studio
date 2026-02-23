@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2, LogIn, ShieldCheck } from 'lucide-react';
 import Logo from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,15 +31,6 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Diagnostic log to help the user verify the connected project ID.
-    if (auth?.app?.options?.projectId) {
-        console.log(
-            `DIAGNOSTIC INFO: The application is configured to connect to Firebase project: ${auth.app.options.projectId}`
-        );
-    }
-  }, [auth]);
-
-  useEffect(() => {
     if (!isUserLoading && user) {
       router.replace('/dashboard');
     }
@@ -53,28 +44,16 @@ export default function LoginPage() {
   const onSubmit: SubmitHandler<FormValues> = async (values) => {
     setIsSigningIn(true);
     try {
-      // Trim whitespace from inputs to prevent login errors due to extra spaces.
       await signInWithEmailAndPassword(auth, values.email.trim(), values.password.trim());
       toast({
         title: 'Login Successful',
-        description: "Welcome back! You're now being redirected to the dashboard.",
+        description: "Welcome back! Accessing the Hub...",
       });
-      // The auth guard will handle the redirect on user state change
     } catch (error: any) {
-      let description = 'An unknown error occurred. Please check your credentials and try again.';
-      
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        description = 'The email or password you entered is incorrect. Please double-check your credentials.';
-      } else if (error.code === 'auth/invalid-email') {
-        description = 'The email address you entered is not valid. Please check the format.';
-      } else if (error.code === 'auth/too-many-requests') {
-        description = 'Access to this account has been temporarily disabled due to many failed login attempts. You can try again later.';
-      }
-
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description,
+        description: 'The credentials entered were incorrect. Please try again.',
       });
     } finally {
         setIsSigningIn(false);
@@ -84,33 +63,51 @@ export default function LoginPage() {
   if (isUserLoading || user) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-sm font-bold text-primary animate-pulse tracking-widest uppercase">Authorizing...</p>
+            </div>
         </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex justify-center">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-muted/30 p-4 md:p-8">
+      {/* Background Decor */}
+      <div className="absolute inset-0 overflow-hidden -z-10 opacity-20">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/30 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="w-full max-w-lg space-y-8">
+        <div className="flex flex-col items-center text-center space-y-2">
             <Logo />
+            <h1 className="text-3xl font-bold mt-6 tracking-tight">Staff Portal</h1>
+            <p className="text-muted-foreground text-sm max-w-sm">Secure access for Gatura Girls High School Choir Management System.</p>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome Back!</CardTitle>
-            <CardDescription>Enter your credentials to access the choir management system.</CardDescription>
+
+        <Card className="border-none shadow-2xl shadow-primary/5 bg-card/80 backdrop-blur-xl rounded-3xl overflow-hidden">
+          <div className="h-2 bg-primary w-full" />
+          <CardHeader className="pt-8 px-8">
+            <CardTitle className="text-xl">Sign In</CardTitle>
+            <CardDescription>Enter your school credentials below.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-8 pt-0">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider">Email Address</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="muthomi@school.ac.ke" {...field} />
+                        <Input 
+                            type="email" 
+                            placeholder="muthomi@school.ac.ke" 
+                            className="bg-muted/50 border-none h-12 rounded-xl focus-visible:ring-primary/20" 
+                            {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -121,25 +118,32 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider">Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            className="bg-muted/50 border-none h-12 rounded-xl focus-visible:ring-primary/20"
+                            {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isSigningIn}>
-                  {isSigningIn ? <Loader2 className="animate-spin" /> : <LogIn />}
-                  {isSigningIn ? 'Signing In...' : 'Login'}
+                <Button type="submit" className="w-full h-12 rounded-xl text-md font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95" disabled={isSigningIn}>
+                  {isSigningIn ? <Loader2 className="animate-spin" /> : <LogIn className="h-5 w-5 mr-2" />}
+                  {isSigningIn ? 'Verifying...' : 'Access Hub'}
                 </Button>
               </form>
             </Form>
           </CardContent>
         </Card>
-         <p className="mt-4 text-center text-sm text-muted-foreground">
-          To get an account, please contact the administrator.
-        </p>
+        
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <ShieldCheck className="h-4 w-4" />
+            <p className="text-xs font-medium">Authorized Personnel Only</p>
+        </div>
       </div>
     </div>
   );
